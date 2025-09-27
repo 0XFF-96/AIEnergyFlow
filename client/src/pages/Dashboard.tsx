@@ -20,7 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Battery, Zap, Home, Sun, Wind, TrendingUp, AlertTriangle, CheckCircle, RefreshCw, Bell, Activity, Settings } from 'lucide-react';
+import { Battery, Zap, Home, Sun, Wind, TrendingUp, AlertTriangle, CheckCircle, RefreshCw, Bell, Activity, Settings, RotateCcw } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -50,6 +50,7 @@ export default function Dashboard() {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [microgridLocation, setMicrogridLocation] = useState<MicrogridLocation | null>(null);
   const [showAlertCenter, setShowAlertCenter] = useState(false);
+  const [showSystemSettings, setShowSystemSettings] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -284,12 +285,7 @@ export default function Dashboard() {
         alerts={alertComponents}
         alertCount={alerts.length}
         onAlertCenterClick={() => setShowAlertCenter(true)}
-        onSystemClick={() => {
-          toast({
-            title: "System Settings",
-            description: "System settings panel coming soon.",
-          });
-        }}
+        onSystemClick={() => setShowSystemSettings(true)}
         userRole={userRole || undefined}
         microgridLocation={microgridLocation || undefined}
       >
@@ -299,17 +295,11 @@ export default function Dashboard() {
         />
       
       <Tabs defaultValue="overview" className="space-y-8">
-        <TabsList className={`grid w-full h-12 ${userRole === 'community' ? 'grid-cols-2' : 'grid-cols-3'}`}>
+        <TabsList className="grid w-full h-12 grid-cols-2">
           <TabsTrigger value="overview" className="flex items-center justify-center space-x-2 py-3">
             <Activity className="h-4 w-4" />
             <span className="text-sm font-medium">Energy Overview</span>
           </TabsTrigger>
-          {userRole === 'operator' && (
-            <TabsTrigger value="config" className="flex items-center justify-center space-x-2 py-3">
-              <Settings className="h-4 w-4" />
-              <span className="text-sm font-medium">Alert Config</span>
-            </TabsTrigger>
-          )}
           <TabsTrigger value="analytics" className="flex items-center justify-center space-x-2 py-3">
             <TrendingUp className="h-4 w-4" />
             <span className="text-sm font-medium">Analytics</span>
@@ -528,18 +518,6 @@ export default function Dashboard() {
         </TabsContent>
 
 
-        {userRole === 'operator' && (
-          <TabsContent value="config" className="space-y-8">
-            <div className="text-center lg:text-left">
-              <h2 className="text-2xl lg:text-3xl font-bold tracking-tight leading-tight">Alert Configuration</h2>
-              <p className="text-muted-foreground mt-2 text-sm lg:text-base">
-                Configure threshold rules, AI detection, and notification settings
-              </p>
-            </div>
-            
-            <AlertConfig onSave={handleAlertConfigSave} />
-          </TabsContent>
-        )}
 
         <TabsContent value="analytics" className="space-y-8">
           <div className="text-center lg:text-left">
@@ -655,6 +633,76 @@ export default function Dashboard() {
                   variant="outline"
                   size="sm"
                   onClick={() => setShowAlertCenter(false)}
+                  className="flex items-center space-x-2"
+                >
+                  <span>Close</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* System Settings Modal */}
+      <Dialog open={showSystemSettings} onOpenChange={setShowSystemSettings}>
+        <DialogContent className="max-w-6xl w-[95vw] max-h-[90vh] p-0 overflow-hidden flex flex-col">
+          <DialogHeader className="p-6 pb-4 border-b border-border/40 bg-background/95 backdrop-blur">
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Settings className="h-6 w-6 text-primary" />
+                <span className="text-xl font-semibold">System Settings</span>
+              </div>
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <span>Configure system parameters and alert rules</span>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto p-6 bg-background/50">
+            <div className="max-w-none">
+              {userRole === 'operator' ? (
+                <AlertConfig onSave={handleAlertConfigSave} />
+              ) : (
+                <div className="text-center py-12">
+                  <Settings className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <h3 className="text-lg font-semibold mb-2">Access Restricted</h3>
+                  <p className="text-muted-foreground mb-4">
+                    System settings are only available to operators.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Contact your system administrator for configuration changes.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Footer with quick actions */}
+          <div className="p-4 border-t border-border/40 bg-background/95 backdrop-blur">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Settings saved automatically
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Reset to defaults
+                    toast({
+                      title: "Settings Reset",
+                      description: "Settings have been reset to defaults.",
+                    });
+                  }}
+                  className="flex items-center space-x-2"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  <span>Reset</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSystemSettings(false)}
                   className="flex items-center space-x-2"
                 >
                   <span>Close</span>

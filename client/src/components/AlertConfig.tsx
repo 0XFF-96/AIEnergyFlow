@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Settings, Battery, Zap, Gauge, Brain, Mail, MessageSquare, Bell, Save, RotateCcw } from 'lucide-react';
+import { Settings, Battery, Zap, Gauge, Mail, MessageSquare, Bell, Save, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ThresholdRule {
@@ -46,17 +46,6 @@ interface NotificationSettings {
   };
 }
 
-interface AIDetectionConfig {
-  enabled: boolean;
-  confidenceThreshold: number;
-  models: {
-    consumption: boolean;
-    generation: boolean;
-    storage: boolean;
-    efficiency: boolean;
-  };
-  sensitivityLevel: 'low' | 'medium' | 'high';
-}
 
 interface AlertConfigProps {
   onSave: (config: any) => void;
@@ -99,18 +88,6 @@ export function AlertConfig({ onSave }: AlertConfigProps) {
     }
   ]);
 
-  // AI Detection State
-  const [aiConfig, setAiConfig] = useState<AIDetectionConfig>({
-    enabled: true,
-    confidenceThreshold: 0.8,
-    models: {
-      consumption: true,
-      generation: true,
-      storage: true,
-      efficiency: false
-    },
-    sensitivityLevel: 'medium'
-  });
 
   // Notification Settings State
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
@@ -208,7 +185,6 @@ export function AlertConfig({ onSave }: AlertConfigProps) {
   const handleSave = () => {
     const config = {
       thresholdRules,
-      aiConfig,
       notificationSettings,
       timestamp: new Date()
     };
@@ -293,7 +269,7 @@ export function AlertConfig({ onSave }: AlertConfigProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full">
       {/* Header */}
       <Card className="hover-elevate">
         <CardHeader>
@@ -327,14 +303,10 @@ export function AlertConfig({ onSave }: AlertConfigProps) {
 
       {/* Configuration Tabs */}
       <Tabs defaultValue="thresholds" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="thresholds" className="flex items-center space-x-2">
             <Gauge className="h-4 w-4" />
             <span>Threshold Rules</span>
-          </TabsTrigger>
-          <TabsTrigger value="ai" className="flex items-center space-x-2">
-            <Brain className="h-4 w-4" />
-            <span>AI Detection</span>
           </TabsTrigger>
           <TabsTrigger value="notifications" className="flex items-center space-x-2">
             <Bell className="h-4 w-4" />
@@ -346,7 +318,7 @@ export function AlertConfig({ onSave }: AlertConfigProps) {
         <TabsContent value="thresholds" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">🔧 Detection Module (Threshold + AI)</CardTitle>
+              <CardTitle className="text-lg">🔧 Threshold Rules</CardTitle>
               <p className="text-sm text-muted-foreground">
                 Configure threshold-based alert rules for system metrics
               </p>
@@ -435,119 +407,6 @@ export function AlertConfig({ onSave }: AlertConfigProps) {
           </Card>
         </TabsContent>
 
-        {/* AI Detection Tab */}
-        <TabsContent value="ai" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">🤖 AI Anomaly Detection</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Configure AI-powered anomaly detection settings
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* AI Detection Enable/Disable */}
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <Brain className="h-5 w-5 text-primary" />
-                  <div>
-                    <h4 className="font-medium">AI Detection Engine</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Enable or disable AI-powered anomaly detection
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  checked={aiConfig.enabled}
-                  onCheckedChange={(enabled) => setAiConfig(prev => ({ ...prev, enabled }))}
-                />
-              </div>
-
-              {aiConfig.enabled && (
-                <>
-                  {/* Confidence Threshold */}
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="text-base font-medium">Model Confidence Threshold</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Adjust the sensitivity of AI detection (default: 0.8)
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">Low Sensitivity</span>
-                        <span className="text-sm font-mono">{aiConfig.confidenceThreshold.toFixed(2)}</span>
-                        <span className="text-sm">High Sensitivity</span>
-                      </div>
-                      <Slider
-                        value={[aiConfig.confidenceThreshold]}
-                        onValueChange={([value]) => setAiConfig(prev => ({ ...prev, confidenceThreshold: value }))}
-                        min={0.1}
-                        max={0.99}
-                        step={0.05}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Detection Models */}
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="text-base font-medium">Detection Models</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Select which metrics to monitor with AI detection
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      {Object.entries(aiConfig.models).map(([model, enabled]) => (
-                        <div key={model} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex items-center space-x-2">
-                            {model === 'consumption' && <Gauge className="h-4 w-4 text-red-400" />}
-                            {model === 'generation' && <Zap className="h-4 w-4 text-green-400" />}
-                            {model === 'storage' && <Battery className="h-4 w-4 text-blue-400" />}
-                            {model === 'efficiency' && <Brain className="h-4 w-4 text-purple-400" />}
-                            <span className="capitalize">{model}</span>
-                          </div>
-                          <Switch
-                            checked={enabled}
-                            onCheckedChange={(checked) => 
-                              setAiConfig(prev => ({
-                                ...prev,
-                                models: { ...prev.models, [model]: checked }
-                              }))
-                            }
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Sensitivity Level */}
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="text-base font-medium">Sensitivity Level</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Overall AI detection sensitivity
-                      </p>
-                    </div>
-                    <Select
-                      value={aiConfig.sensitivityLevel}
-                      onValueChange={(level: any) => setAiConfig(prev => ({ ...prev, sensitivityLevel: level }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low - Fewer false positives</SelectItem>
-                        <SelectItem value="medium">Medium - Balanced detection</SelectItem>
-                        <SelectItem value="high">High - More sensitive detection</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* Notifications Tab */}
         <TabsContent value="notifications" className="space-y-4">
