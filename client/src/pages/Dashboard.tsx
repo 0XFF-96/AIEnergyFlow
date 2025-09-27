@@ -133,16 +133,16 @@ export default function Dashboard() {
   if (!isInitialized) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Card className="w-full max-w-md">
+        <div className="flex items-center justify-center min-h-[60vh] px-4">
+          <Card className="w-full max-w-md mx-auto">
             <CardHeader className="text-center">
-              <CardTitle className="flex items-center justify-center space-x-2">
+              <CardTitle className="flex flex-col sm:flex-row items-center justify-center space-x-2 space-y-2 sm:space-y-0">
                 <Zap className="h-6 w-6 text-primary" />
                 <span>Energy Management System</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="text-center space-y-4">
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-sm lg:text-base">
                 Initialize the system to start monitoring energy data and AI-powered anomaly detection.
               </p>
               <Button 
@@ -168,7 +168,7 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex items-center justify-center min-h-[60vh] px-4">
           <div className="text-center space-y-4">
             <RefreshCw className="h-8 w-8 animate-spin mx-auto text-primary" />
             <p className="text-muted-foreground">Loading energy data...</p>
@@ -181,14 +181,16 @@ export default function Dashboard() {
   if (error) {
     return (
       <DashboardLayout>
-        <Card className="border-red-500/50 bg-red-500/10">
-          <CardContent className="pt-6">
-            <div className="flex items-center space-x-2 text-red-300">
-              <AlertTriangle className="h-5 w-5" />
-              <span>Failed to load dashboard data. Please refresh the page.</span>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="px-4">
+          <Card className="border-red-500/50 bg-red-500/10">
+            <CardContent className="pt-6">
+              <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2 text-red-300">
+                <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+                <span className="text-center sm:text-left">Failed to load dashboard data. Please refresh the page.</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </DashboardLayout>
     );
   }
@@ -221,42 +223,48 @@ export default function Dashboard() {
     <DashboardLayout alerts={alertComponents}>
       <div className="space-y-6">
         {/* Real-time Status Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Energy Dashboard</h2>
-            <p className="text-muted-foreground">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="text-center lg:text-left">
+            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Energy Dashboard</h2>
+            <p className="text-muted-foreground mt-1">
               Real-time monitoring and AI-powered anomaly detection
             </p>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="text-right">
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="text-center sm:text-right">
               <div className="text-sm text-muted-foreground">Last Update</div>
               <div className="font-mono text-lg">{currentTime.toLocaleTimeString()}</div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => simulateMutation.mutate('normal')}
-              disabled={simulateMutation.isPending}
-              data-testid="button-simulate-data"
-            >
-              {simulateMutation.isPending ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4 mr-2" />
-              )}
-              Simulate Data
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => simulateMutation.mutate('anomaly')}
-              disabled={simulateMutation.isPending}
-              data-testid="button-simulate-anomaly"
-            >
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              Test Anomaly
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => simulateMutation.mutate('normal')}
+                disabled={simulateMutation.isPending}
+                data-testid="button-simulate-data"
+                className="w-full sm:w-auto"
+              >
+                {simulateMutation.isPending ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                <span className="hidden sm:inline">Simulate Data</span>
+                <span className="sm:hidden">Simulate</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => simulateMutation.mutate('anomaly')}
+                disabled={simulateMutation.isPending}
+                data-testid="button-simulate-anomaly"
+                className="w-full sm:w-auto"
+              >
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Test Anomaly</span>
+                <span className="sm:hidden">Test</span>
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -304,7 +312,7 @@ export default function Dashboard() {
         />
 
         {/* Bottom Grid - System Status and AI Monitoring */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {/* System Status */}
           <Card className="hover-elevate">
             <CardHeader>
@@ -362,14 +370,14 @@ export default function Dashboard() {
                 <span className="text-sm">System Health</span>
                 <span className="font-mono text-sm text-primary">94.7%</span>
               </div>
-              {aiInsights && 'insights' in aiInsights && (
+              {aiInsights && typeof aiInsights === 'object' && aiInsights !== null && 'insights' in aiInsights ? (
                 <div className="mt-4 p-3 bg-muted/50 rounded-md">
                   <h4 className="text-sm font-medium mb-2">AI Daily Insights</h4>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     {(aiInsights as any).insights}
                   </p>
                 </div>
-              )}
+              ) : null}
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -387,20 +395,20 @@ export default function Dashboard() {
         {/* Energy Efficiency Report */}
         <Card className="hover-elevate">
           <CardHeader>
-            <CardTitle>Daily Energy Report</CardTitle>
+            <CardTitle className="text-center lg:text-left">Daily Energy Report</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div className="text-center">
-                <div className="text-2xl font-bold text-primary">{dailyTotals.consumption} kWh</div>
+                <div className="text-2xl lg:text-3xl font-bold text-primary">{dailyTotals.consumption} kWh</div>
                 <div className="text-sm text-muted-foreground">Total Consumption</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-primary">{dailyTotals.generation} kWh</div>
+                <div className="text-2xl lg:text-3xl font-bold text-primary">{dailyTotals.generation} kWh</div>
                 <div className="text-sm text-muted-foreground">Solar Generated</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-primary">{dailyTotals.co2Saved} kg</div>
+                <div className="text-2xl lg:text-3xl font-bold text-primary">{dailyTotals.co2Saved} kg</div>
                 <div className="text-sm text-muted-foreground">CO₂ Saved</div>
               </div>
             </div>

@@ -1,0 +1,181 @@
+---
+description: AI Energy Management System - Modular Development Rules
+globs: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"]
+alwaysApply: true
+---
+
+# AI Energy Management System - Development Rules
+
+## Project Background & Scope
+
+### 🎯 Project Overview
+This is an **AI-powered Energy Management System** designed for microgrid monitoring and optimization. The system provides real-time energy monitoring, intelligent anomaly detection, and automated insights for energy efficiency optimization.
+
+### 🏗️ System Architecture
+- **Frontend**: React + TypeScript with modern UI components
+- **Backend**: Node.js + Express with AI integration
+- **Database**: PostgreSQL with Drizzle ORM
+- **AI**: OpenAI GPT-5 for anomaly detection and insights
+- **Real-time**: WebSocket support for live data updates
+
+### 📊 Core Features
+- Real-time energy monitoring (consumption, generation, storage)
+- AI-powered anomaly detection and pattern analysis
+- Intelligent alert system with severity levels
+- Data visualization with interactive charts
+- System health monitoring and status indicators
+- Automated daily insights and recommendations
+
+## Development Rules
+
+### 1. Modular Code Architecture
+**PRINCIPLE**: Each file should focus on a single responsibility and be self-contained.
+
+#### File Organization Rules:
+- **Components**: One component per file, maximum 200 lines
+- **Services**: Separate business logic from presentation
+- **Utils**: Pure functions only, no side effects
+- **Types**: Centralized type definitions in shared schema
+- **API Routes**: One route group per domain (energy, alerts, anomalies)
+
+#### Module Boundaries:
+```
+client/src/
+├── components/          # UI components (one per file)
+├── pages/              # Page components only
+├── hooks/              # Custom React hooks
+├── lib/                # Utility functions
+└── ui/                 # Reusable UI primitives
+
+server/
+├── routes.ts           # API route definitions
+├── storage.ts          # Database operations
+├── ai-service.ts       # AI/ML logic
+└── index.ts            # Server setup only
+
+shared/
+└── schema.ts           # Shared types and validation
+```
+
+### 2. Code Quality Standards
+
+#### TypeScript Rules:
+- Use strict typing, avoid `any` type
+- Define interfaces for all data structures
+- Use Zod schemas for runtime validation
+- Export types from shared schema
+
+#### React Component Rules:
+- Maximum 200 lines per component file
+- Use custom hooks for complex logic
+- Separate data fetching from presentation
+- Implement proper error boundaries
+
+#### API Design Rules:
+- RESTful endpoints with clear naming
+- Consistent error response format
+- Input validation using Zod schemas
+- Proper HTTP status codes
+
+### 3. Energy Domain Specific Rules
+
+#### Data Models:
+- Energy metrics: consumption, generation, storage, efficiency
+- Anomaly detection: type, severity, confidence score
+- Alert system: type, status, resolution tracking
+- System status: component health indicators
+
+#### AI Integration:
+- Use OpenAI GPT-5 for pattern analysis
+- Implement fallback to rule-based detection
+- Cache AI responses to avoid rate limits
+- Provide human-readable insights
+
+#### Real-time Updates:
+- 30-second data refresh intervals
+- WebSocket for live status updates
+- Optimistic UI updates
+- Proper loading states
+
+### 4. Performance & Scalability
+
+#### Frontend Optimization:
+- Lazy load components when possible
+- Use React Query for data caching
+- Implement virtual scrolling for large datasets
+- Optimize bundle size with code splitting
+
+#### Backend Optimization:
+- Database connection pooling
+- Query optimization for time-series data
+- Rate limiting for AI API calls
+- Efficient data aggregation
+
+### 5. Testing & Quality Assurance
+
+#### Testing Strategy:
+- Unit tests for utility functions
+- Integration tests for API endpoints
+- Component testing with React Testing Library
+- E2E tests for critical user flows
+
+#### Code Review Checklist:
+- [ ] Single responsibility principle followed
+- [ ] TypeScript types properly defined
+- [ ] Error handling implemented
+- [ ] Performance considerations addressed
+- [ ] Security best practices followed
+
+### 6. Documentation Standards
+
+#### Code Documentation:
+- JSDoc comments for public APIs
+- README files for complex modules
+- Inline comments for business logic
+- Architecture decision records (ADRs)
+
+#### API Documentation:
+- OpenAPI/Swagger specifications
+- Request/response examples
+- Error code documentation
+- Rate limiting information
+
+## Energy Management Domain Knowledge
+
+### Key Metrics:
+- **Consumption**: Energy usage in kW
+- **Generation**: Solar/wind generation in kW  
+- **Storage**: Battery charge percentage
+- **Efficiency**: System performance metrics
+- **Grid Export**: Excess energy sold back to grid
+
+### Anomaly Types:
+- **Consumption Spike**: Unusual energy usage patterns
+- **Generation Drop**: Solar/wind output below expected
+- **Storage Critical**: Battery levels dangerously low
+- **Device Fault**: Equipment malfunction indicators
+
+### Alert Severity Levels:
+- **Low**: Minor efficiency issues
+- **Medium**: Performance degradation
+- **High**: System component failure
+- **Critical**: Safety or grid stability concerns
+
+## Development Workflow
+
+### Git Workflow:
+- Feature branches for new functionality
+- Descriptive commit messages
+- Pull request reviews required
+- Automated testing on CI/CD
+
+### Environment Setup:
+- Development: Local with mock data
+- Staging: Production-like environment
+- Production: Full AI integration
+
+### Deployment:
+- Docker containerization
+- Environment variable management
+- Database migration scripts
+- Health check endpoints
