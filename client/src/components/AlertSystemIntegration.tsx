@@ -44,7 +44,7 @@ export function AlertSystemIntegration({ alerts, onAlertAction }: AlertSystemInt
   const criticalAlerts = alerts.filter(alert => alert.severity === 'critical');
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-h-0 max-w-full">
       {/* Quick Actions Panel */}
       <Card className="hover-elevate">
         <CardHeader>

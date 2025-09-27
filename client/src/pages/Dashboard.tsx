@@ -7,6 +7,7 @@ import { AlertSystemIntegration } from '@/components/AlertSystemIntegration';
 import { AlertNotificationSystem } from '@/components/AlertNotificationSystem';
 import { AlertConfig } from '@/components/AlertConfig';
 import SystemInitialization, { UserRole, MicrogridLocation } from '@/components/SystemInitialization';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 // Import microgrid locations for display
 const microgridLocations = [
@@ -48,6 +49,7 @@ export default function Dashboard() {
   const [showRoleSelection, setShowRoleSelection] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [microgridLocation, setMicrogridLocation] = useState<MicrogridLocation | null>(null);
+  const [showAlertCenter, setShowAlertCenter] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -277,26 +279,30 @@ export default function Dashboard() {
   ) : null;
 
   return (
-    <DashboardLayout alerts={alertComponents}>
-      <AlertNotificationSystem 
-        alerts={processedAlerts}
-        onAlertAction={handleAlertDismiss}
-      />
+    <>
+      <DashboardLayout 
+        alerts={alertComponents}
+        alertCount={alerts.length}
+        onAlertCenterClick={() => setShowAlertCenter(true)}
+        onSystemClick={() => {
+          toast({
+            title: "System Settings",
+            description: "System settings panel coming soon.",
+          });
+        }}
+        userRole={userRole || undefined}
+        microgridLocation={microgridLocation || undefined}
+      >
+        <AlertNotificationSystem 
+          alerts={processedAlerts}
+          onAlertAction={handleAlertDismiss}
+        />
       
       <Tabs defaultValue="overview" className="space-y-8">
-        <TabsList className={`grid w-full h-12 ${userRole === 'community' ? 'grid-cols-3' : 'grid-cols-4'}`}>
+        <TabsList className={`grid w-full h-12 ${userRole === 'community' ? 'grid-cols-2' : 'grid-cols-3'}`}>
           <TabsTrigger value="overview" className="flex items-center justify-center space-x-2 py-3">
             <Activity className="h-4 w-4" />
             <span className="text-sm font-medium">Energy Overview</span>
-          </TabsTrigger>
-          <TabsTrigger value="alerts" className="flex items-center justify-center space-x-2 py-3 relative">
-            <Bell className="h-4 w-4" />
-            <span className="text-sm font-medium">Alert Center</span>
-            {alerts.length > 0 && (
-              <Badge variant="outline" className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-red-500/20 text-red-300 border-red-500/30 text-xs">
-                {alerts.length}
-              </Badge>
-            )}
           </TabsTrigger>
           {userRole === 'operator' && (
             <TabsTrigger value="config" className="flex items-center justify-center space-x-2 py-3">
@@ -521,19 +527,6 @@ export default function Dashboard() {
         </Card>
         </TabsContent>
 
-        <TabsContent value="alerts" className="space-y-8">
-          <div className="text-center lg:text-left">
-            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight leading-tight">Alert Management Center</h2>
-            <p className="text-muted-foreground mt-2 text-sm lg:text-base">
-              Comprehensive alert monitoring, management, and analytics
-            </p>
-          </div>
-          
-          <AlertSystemIntegration
-            alerts={alerts}
-            onAlertAction={handleAlertAction}
-          />
-        </TabsContent>
 
         {userRole === 'operator' && (
           <TabsContent value="config" className="space-y-8">
@@ -607,6 +600,70 @@ export default function Dashboard() {
           </Card>
         </TabsContent>
       </Tabs>
-    </DashboardLayout>
+      </DashboardLayout>
+
+      {/* Alert Center Modal */}
+      <Dialog open={showAlertCenter} onOpenChange={setShowAlertCenter}>
+        <DialogContent className="max-w-7xl w-[95vw] max-h-[90vh] p-0 overflow-hidden flex flex-col">
+          <DialogHeader className="p-6 pb-4 border-b border-border/40 bg-background/95 backdrop-blur">
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Bell className="h-6 w-6 text-primary" />
+                <span className="text-xl font-semibold">Alert Center</span>
+                {alerts.length > 0 && (
+                  <Badge variant="destructive" className="ml-2">
+                    {alerts.length} Active Alerts
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <Activity className="h-4 w-4" />
+                <span>Real-time Monitoring</span>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto p-6 bg-background/50">
+            <div className="max-w-none">
+              <AlertSystemIntegration
+                alerts={processedAlerts}
+                onAlertAction={handleAlertAction}
+              />
+            </div>
+          </div>
+          
+          {/* Footer with quick actions */}
+          <div className="p-4 border-t border-border/40 bg-background/95 backdrop-blur">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Last updated: {currentTime.toLocaleTimeString()}
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Refresh alerts
+                    queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+                  }}
+                  className="flex items-center space-x-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  <span>Refresh</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAlertCenter(false)}
+                  className="flex items-center space-x-2"
+                >
+                  <span>Close</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

@@ -367,7 +367,7 @@ function AlertList({ alerts, onAlertAction }: { alerts: Alert[], onAlertAction: 
   };
 
   return (
-    <div className="space-y-3">
+    <div className="max-h-[400px] overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent hover:scrollbar-thumb-border/60">
       {alerts.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
