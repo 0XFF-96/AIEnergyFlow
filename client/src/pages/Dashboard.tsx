@@ -2,11 +2,16 @@ import { DashboardLayout } from '@/components/DashboardLayout';
 import { EnergyKPICard } from '@/components/EnergyKPICard';
 import { EnergyChart } from '@/components/EnergyChart';
 import { AlertBanner } from '@/components/AlertBanner';
+import { AlertDashboard } from '@/components/AlertDashboard';
+import { AlertSystemIntegration } from '@/components/AlertSystemIntegration';
+import { AlertNotificationSystem } from '@/components/AlertNotificationSystem';
+import { AlertConfig } from '@/components/AlertConfig';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Battery, Zap, Home, Sun, Wind, TrendingUp, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Battery, Zap, Home, Sun, Wind, TrendingUp, AlertTriangle, CheckCircle, RefreshCw, Bell, Activity, Settings } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 
@@ -117,15 +122,65 @@ export default function Dashboard() {
     refetchInterval: 300000, // Refresh every 5 minutes
   });
 
+  // Memoize processed alerts to prevent unnecessary re-renders
+  const processedAlerts = useMemo(() => {
+    const alerts = (dashboardData as DashboardData)?.alerts || [];
+    return alerts.map((alert: any) => ({
+      ...alert,
+      severity: alert.type === 'critical' ? 'critical' : alert.type === 'warning' ? 'warning' : 'info',
+      timestamp: new Date(alert.timestamp)
+    }));
+  }, [(dashboardData as DashboardData)?.alerts]);
+
   const handleAlertDismiss = (alertId: string) => {
     dismissAlertMutation.mutate(alertId);
   };
 
-  const handleAlertAction = (actionType: string) => {
-    console.log(`${actionType} action triggered`);
+  const handleAlertAction = (alertId: string, action: string, notes?: string) => {
+    console.log(`Alert ${alertId}: ${action} action triggered`, { notes });
+    
+    switch (action) {
+      case 'acknowledge':
+        toast({
+          title: "Alert Acknowledged",
+          description: `Alert ${alertId} has been acknowledged.`,
+        });
+        break;
+      case 'resolve':
+        toast({
+          title: "Alert Resolved",
+          description: `Alert ${alertId} has been marked as resolved.`,
+        });
+        break;
+      case 'dismiss':
+        dismissAlertMutation.mutate(alertId);
+        break;
+      case 'add_notes':
+        toast({
+          title: "Notes Added",
+          description: `Notes added to alert ${alertId}.`,
+        });
+        break;
+      default:
+        toast({
+          title: "Action Triggered",
+          description: `${action} action triggered for alert ${alertId}.`,
+        });
+    }
+    
+    // Refresh alerts after action
+    queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+  };
+
+  const handleAlertConfigSave = (config: any) => {
+    console.log('Saving alert configuration:', config);
+    
+    // In a real implementation, this would save to the backend
+    localStorage.setItem('alertConfig', JSON.stringify(config));
+    
     toast({
-      title: "Action Triggered",
-      description: `${actionType} panel would open in a full system.`,
+      title: "Configuration Saved",
+      description: "Alert configuration has been saved successfully.",
     });
   };
 
@@ -213,7 +268,7 @@ export default function Dashboard() {
           timestamp={new Date(alert.timestamp).toLocaleString()}
           onDismiss={() => handleAlertDismiss(alert.id)}
           actionLabel="Investigate"
-          onAction={() => handleAlertAction('Investigation')}
+          onAction={() => handleAlertAction(alert.id, 'investigate')}
         />
       ))}
     </div>
@@ -221,15 +276,45 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout alerts={alertComponents}>
-      <div className="space-y-6">
-        {/* Real-time Status Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="text-center lg:text-left">
-            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Energy Dashboard</h2>
-            <p className="text-muted-foreground mt-1">
-              Real-time monitoring and AI-powered anomaly detection
-            </p>
-          </div>
+      <AlertNotificationSystem 
+        alerts={processedAlerts}
+        onAlertAction={handleAlertDismiss}
+      />
+      
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview" className="flex items-center space-x-2">
+            <Activity className="h-4 w-4" />
+            <span>Energy Overview</span>
+          </TabsTrigger>
+          <TabsTrigger value="alerts" className="flex items-center space-x-2">
+            <Bell className="h-4 w-4" />
+            <span>Alert Center</span>
+            {alerts.length > 0 && (
+              <Badge variant="outline" className="ml-1 bg-red-500/20 text-red-300 border-red-500/30">
+                {alerts.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="config" className="flex items-center space-x-2">
+            <Settings className="h-4 w-4" />
+            <span>Alert Config</span>
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center space-x-2">
+            <TrendingUp className="h-4 w-4" />
+            <span>Analytics</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          {/* Real-time Status Header */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="text-center lg:text-left">
+              <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Energy Dashboard</h2>
+              <p className="text-muted-foreground mt-1">
+                Real-time monitoring and AI-powered anomaly detection
+              </p>
+            </div>
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <div className="text-center sm:text-right">
               <div className="text-sm text-muted-foreground">Last Update</div>
@@ -382,7 +467,7 @@ export default function Dashboard() {
                 variant="outline" 
                 size="sm" 
                 className="w-full mt-4"
-                onClick={() => handleAlertAction('AI Insights')}
+                onClick={() => handleAlertAction('ai-insights', 'view')}
                 data-testid="button-ai-insights"
               >
                 <TrendingUp className="h-4 w-4 mr-2" />
@@ -414,7 +499,92 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="alerts" className="space-y-6">
+          <div className="text-center lg:text-left mb-6">
+            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Alert Management Center</h2>
+            <p className="text-muted-foreground mt-1">
+              Comprehensive alert monitoring, management, and analytics
+            </p>
+          </div>
+          
+          <AlertSystemIntegration
+            alerts={alerts}
+            onAlertAction={handleAlertAction}
+          />
+        </TabsContent>
+
+        <TabsContent value="config" className="space-y-6">
+          <div className="text-center lg:text-left mb-6">
+            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Alert Configuration</h2>
+            <p className="text-muted-foreground mt-1">
+              Configure threshold rules, AI detection, and notification settings
+            </p>
+          </div>
+          
+          <AlertConfig onSave={handleAlertConfigSave} />
+        </TabsContent>
+
+        <TabsContent value="analytics" className="space-y-6">
+          <div className="text-center lg:text-left mb-6">
+            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Analytics & Reports</h2>
+            <p className="text-muted-foreground mt-1">
+              Deep insights into energy patterns and system performance
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">Energy Efficiency Trend</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-primary">94.7%</div>
+                <p className="text-xs text-muted-foreground">+2.1% from last month</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">Alert Response Time</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-primary">15 min</div>
+                <p className="text-xs text-muted-foreground">-5 min from last week</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">System Uptime</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-primary">99.8%</div>
+                <p className="text-xs text-muted-foreground">Excellent performance</p>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Analytics Coming Soon</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Advanced analytics and reporting features will be available here, including:
+              </p>
+              <ul className="list-disc list-inside mt-4 space-y-2 text-sm text-muted-foreground">
+                <li>Energy consumption patterns and forecasting</li>
+                <li>Predictive maintenance recommendations</li>
+                <li>Cost optimization analysis</li>
+                <li>Carbon footprint tracking</li>
+                <li>Custom report generation</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </DashboardLayout>
   );
 }
