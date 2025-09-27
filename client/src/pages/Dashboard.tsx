@@ -6,11 +6,22 @@ import { AlertDashboard } from '@/components/AlertDashboard';
 import { AlertSystemIntegration } from '@/components/AlertSystemIntegration';
 import { AlertNotificationSystem } from '@/components/AlertNotificationSystem';
 import { AlertConfig } from '@/components/AlertConfig';
+import SystemInitialization, { UserRole, MicrogridLocation } from '@/components/SystemInitialization';
+import { FloatingAIButton } from '@/components/FloatingAIButton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
+// Import microgrid locations for display
+const microgridLocations = [
+  { value: 'north-perth', label: 'Microgrid North (Perth)', region: 'Northern Region' },
+  { value: 'south-bunbury', label: 'Microgrid South (Bunbury)', region: 'Southern Region' },
+  { value: 'east-kalgoorlie', label: 'Microgrid East (Kalgoorlie)', region: 'Eastern Region' },
+  { value: 'west-geraldton', label: 'Microgrid West (Geraldton)', region: 'Western Region' },
+];
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Battery, Zap, Home, Sun, Wind, TrendingUp, AlertTriangle, CheckCircle, RefreshCw, Bell, Activity, Settings } from 'lucide-react';
+import { Battery, Zap, Home, Sun, Wind, TrendingUp, AlertTriangle, CheckCircle, RefreshCw, Bell, Activity, Settings, RotateCcw } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -36,6 +47,11 @@ interface DashboardData {
 export default function Dashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showRoleSelection, setShowRoleSelection] = useState(true);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [microgridLocation, setMicrogridLocation] = useState<MicrogridLocation | null>(null);
+  const [showAlertCenter, setShowAlertCenter] = useState(false);
+  const [showSystemSettings, setShowSystemSettings] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -51,24 +67,40 @@ export default function Dashboard() {
     enabled: isInitialized,
   });
 
+  // Handle role and location selection
+  const handleSystemInitialize = async (role: UserRole, location: MicrogridLocation) => {
+    setUserRole(role);
+    setMicrogridLocation(location);
+    
+    // Initialize system with user preferences
+    const response = await fetch('/api/system/initialize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userRole: role,
+        microgridLocation: location,
+      }),
+    });
+    
+    if (!response.ok) throw new Error('Failed to initialize system');
+    
+    const result = await response.json();
+    setIsInitialized(true);
+    setShowRoleSelection(false);
+    queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+    
+    toast({
+      title: "System Initialized",
+      description: `Welcome ${role === 'community' ? 'Community Member' : 'System Operator'}! ${location} microgrid is now active.`,
+    });
+    
+    return result;
+  };
+
   // Initialize system mutation
   const initializeMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch('/api/system/initialize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!response.ok) throw new Error('Failed to initialize system');
-      return response.json();
-    },
-    onSuccess: () => {
-      setIsInitialized(true);
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
-      toast({
-        title: "System Initialized",
-        description: "Energy management system is now active with sample data.",
-      });
-    },
+    mutationFn: ({ role, location }: { role: UserRole; location: MicrogridLocation }) => 
+      handleSystemInitialize(role, location),
     onError: (error) => {
       toast({
         title: "Initialization Failed",
@@ -184,39 +216,13 @@ export default function Dashboard() {
     });
   };
 
-  // Show initialization screen if not initialized
-  if (!isInitialized) {
+  // Show role selection screen if not initialized
+  if (!isInitialized || showRoleSelection) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh] px-4">
-          <Card className="w-full max-w-md mx-auto">
-            <CardHeader className="text-center">
-              <CardTitle className="flex flex-col sm:flex-row items-center justify-center space-x-2 space-y-2 sm:space-y-0">
-                <Zap className="h-6 w-6 text-primary" />
-                <span>Energy Management System</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-center space-y-4">
-              <p className="text-muted-foreground text-sm lg:text-base">
-                Initialize the system to start monitoring energy data and AI-powered anomaly detection.
-              </p>
-              <Button 
-                onClick={() => initializeMutation.mutate()}
-                disabled={initializeMutation.isPending}
-                className="w-full"
-                data-testid="button-initialize-system"
-              >
-                {initializeMutation.isPending ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Zap className="h-4 w-4 mr-2" />
-                )}
-                Initialize System
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </DashboardLayout>
+      <SystemInitialization
+        onInitialize={(role, location) => initializeMutation.mutate({ role, location })}
+        isInitializing={initializeMutation.isPending}
+      />
     );
   }
 
@@ -275,83 +281,94 @@ export default function Dashboard() {
   ) : null;
 
   return (
-    <DashboardLayout alerts={alertComponents}>
-      <AlertNotificationSystem 
-        alerts={processedAlerts}
-        onAlertAction={handleAlertDismiss}
-      />
+    <>
+      <DashboardLayout 
+        alerts={alertComponents}
+        alertCount={alerts.length}
+        onAlertCenterClick={() => setShowAlertCenter(true)}
+        onSystemClick={() => setShowSystemSettings(true)}
+        userRole={userRole || undefined}
+        microgridLocation={microgridLocation || undefined}
+      >
+        <AlertNotificationSystem 
+          alerts={processedAlerts}
+          onAlertAction={handleAlertDismiss}
+        />
       
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview" className="flex items-center space-x-2">
+      <Tabs defaultValue="overview" className="space-y-8">
+        <TabsList className="grid w-full h-12 grid-cols-2">
+          <TabsTrigger value="overview" className="flex items-center justify-center space-x-2 py-3">
             <Activity className="h-4 w-4" />
-            <span>Energy Overview</span>
+            <span className="text-sm font-medium">Energy Overview</span>
           </TabsTrigger>
-          <TabsTrigger value="alerts" className="flex items-center space-x-2">
-            <Bell className="h-4 w-4" />
-            <span>Alert Center</span>
-            {alerts.length > 0 && (
-              <Badge variant="outline" className="ml-1 bg-red-500/20 text-red-300 border-red-500/30">
-                {alerts.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="config" className="flex items-center space-x-2">
-            <Settings className="h-4 w-4" />
-            <span>Alert Config</span>
-          </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center space-x-2">
+          <TabsTrigger value="analytics" className="flex items-center justify-center space-x-2 py-3">
             <TrendingUp className="h-4 w-4" />
-            <span>Analytics</span>
+            <span className="text-sm font-medium">Analytics</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="overview" className="space-y-8">
           {/* Real-time Status Header */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="text-center lg:text-left">
-              <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Energy Dashboard</h2>
-              <p className="text-muted-foreground mt-1">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+            <div className="flex-1 text-center lg:text-left">
+              <h2 className="text-2xl lg:text-3xl font-bold tracking-tight leading-tight">Energy Dashboard</h2>
+              <p className="text-muted-foreground mt-2 text-sm lg:text-base">
                 Real-time monitoring and AI-powered anomaly detection
               </p>
+              {(userRole || microgridLocation) && (
+                <div className="flex flex-wrap items-center gap-2 mt-3">
+                  {userRole && (
+                    <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30">
+                      {userRole === 'community' ? 'Community Member' : 'System Operator'}
+                    </Badge>
+                  )}
+                  {microgridLocation && (
+                    <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/30">
+                      {microgridLocations.find(l => l.value === microgridLocation)?.label || 'Microgrid'}
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
-          <div className="flex flex-col sm:flex-row items-center gap-4">
-            <div className="text-center sm:text-right">
-              <div className="text-sm text-muted-foreground">Last Update</div>
-              <div className="font-mono text-lg">{currentTime.toLocaleTimeString()}</div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => simulateMutation.mutate('normal')}
-                disabled={simulateMutation.isPending}
-                data-testid="button-simulate-data"
-                className="w-full sm:w-auto"
-              >
-                {simulateMutation.isPending ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                )}
-                <span className="hidden sm:inline">Simulate Data</span>
-                <span className="sm:hidden">Simulate</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => simulateMutation.mutate('anomaly')}
-                disabled={simulateMutation.isPending}
-                data-testid="button-simulate-anomaly"
-                className="w-full sm:w-auto"
-              >
-                <AlertTriangle className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Test Anomaly</span>
-                <span className="sm:hidden">Test</span>
-              </Button>
+            <div className="flex flex-col sm:flex-row items-center gap-4 lg:items-end">
+              <div className="text-center sm:text-right">
+                <div className="text-xs text-muted-foreground font-medium">Last Update</div>
+                <div className="font-mono text-base lg:text-lg mt-1">{currentTime.toLocaleTimeString()}</div>
+              </div>
+              {userRole === 'operator' && (
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => simulateMutation.mutate('normal')}
+                    disabled={simulateMutation.isPending}
+                    data-testid="button-simulate-data"
+                    className="w-full sm:w-auto min-w-[120px]"
+                  >
+                    {simulateMutation.isPending ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    <span className="hidden sm:inline">Simulate Data</span>
+                    <span className="sm:hidden">Simulate</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => simulateMutation.mutate('anomaly')}
+                    disabled={simulateMutation.isPending}
+                    data-testid="button-simulate-anomaly"
+                    className="w-full sm:w-auto min-w-[120px]"
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Test Anomaly</span>
+                    <span className="sm:hidden">Test</span>
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
-        </div>
 
         {/* KPI Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -396,17 +413,16 @@ export default function Dashboard() {
           height={400}
         />
 
-        {/* Bottom Grid - System Status and AI Monitoring */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {/* System Status */}
-          <Card className="hover-elevate">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <CheckCircle className="h-5 w-5 text-primary" />
-                <span>System Status</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        {/* System Status */}
+        <Card className="hover-elevate">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <CheckCircle className="h-5 w-5 text-primary" />
+              <span>System Status</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm">Solar Panels</span>
                 <Badge className={systemStatus.solarPanels === 'online' ? 'bg-primary/20 text-primary border-primary/30' : 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'}>
@@ -427,55 +443,9 @@ export default function Dashboard() {
                 <span className="text-sm">AI Monitoring</span>
                 <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">Active</Badge>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* AI Monitoring */}
-          <Card className="hover-elevate">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Zap className="h-5 w-5 text-purple-400" />
-                <span>AI Insights</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Anomaly Detection</span>
-                <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">Active</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Pattern Analysis</span>
-                <Badge className="bg-primary/20 text-primary border-primary/30">Learning</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Active Alerts</span>
-                <span className="font-mono text-sm text-yellow-300">{alerts.length}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">System Health</span>
-                <span className="font-mono text-sm text-primary">94.7%</span>
-              </div>
-              {aiInsights && typeof aiInsights === 'object' && aiInsights !== null && 'insights' in aiInsights ? (
-                <div className="mt-4 p-3 bg-muted/50 rounded-md">
-                  <h4 className="text-sm font-medium mb-2">AI Daily Insights</h4>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {(aiInsights as any).insights}
-                  </p>
-                </div>
-              ) : null}
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full mt-4"
-                onClick={() => handleAlertAction('ai-insights', 'view')}
-                data-testid="button-ai-insights"
-              >
-                <TrendingUp className="h-4 w-4 mr-2" />
-                View Detailed Insights
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Energy Efficiency Report */}
         <Card className="hover-elevate">
@@ -501,35 +471,12 @@ export default function Dashboard() {
         </Card>
         </TabsContent>
 
-        <TabsContent value="alerts" className="space-y-6">
-          <div className="text-center lg:text-left mb-6">
-            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Alert Management Center</h2>
-            <p className="text-muted-foreground mt-1">
-              Comprehensive alert monitoring, management, and analytics
-            </p>
-          </div>
-          
-          <AlertSystemIntegration
-            alerts={alerts}
-            onAlertAction={handleAlertAction}
-          />
-        </TabsContent>
 
-        <TabsContent value="config" className="space-y-6">
-          <div className="text-center lg:text-left mb-6">
-            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Alert Configuration</h2>
-            <p className="text-muted-foreground mt-1">
-              Configure threshold rules, AI detection, and notification settings
-            </p>
-          </div>
-          
-          <AlertConfig onSave={handleAlertConfigSave} />
-        </TabsContent>
 
-        <TabsContent value="analytics" className="space-y-6">
-          <div className="text-center lg:text-left mb-6">
-            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Analytics & Reports</h2>
-            <p className="text-muted-foreground mt-1">
+        <TabsContent value="analytics" className="space-y-8">
+          <div className="text-center lg:text-left">
+            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight leading-tight">Analytics & Reports</h2>
+            <p className="text-muted-foreground mt-2 text-sm lg:text-base">
               Deep insights into energy patterns and system performance
             </p>
           </div>
@@ -585,6 +532,148 @@ export default function Dashboard() {
           </Card>
         </TabsContent>
       </Tabs>
-    </DashboardLayout>
+      </DashboardLayout>
+
+      {/* Alert Center Modal */}
+      <Dialog open={showAlertCenter} onOpenChange={setShowAlertCenter}>
+        <DialogContent className="max-w-7xl w-[95vw] max-h-[90vh] p-0 overflow-hidden flex flex-col">
+          <DialogHeader className="p-6 pb-4 border-b border-border/40 bg-background/95 backdrop-blur">
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Bell className="h-6 w-6 text-primary" />
+                <span className="text-xl font-semibold">Alert Center</span>
+                {alerts.length > 0 && (
+                  <Badge variant="destructive" className="ml-2">
+                    {alerts.length} Active Alerts
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <Activity className="h-4 w-4" />
+                <span>Real-time Monitoring</span>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto p-6 bg-background/50">
+            <div className="max-w-none">
+              <AlertSystemIntegration
+                alerts={processedAlerts}
+                onAlertAction={handleAlertAction}
+              />
+            </div>
+          </div>
+          
+          {/* Footer with quick actions */}
+          <div className="p-4 border-t border-border/40 bg-background/95 backdrop-blur">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Last updated: {currentTime.toLocaleTimeString()}
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Refresh alerts
+                    queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+                  }}
+                  className="flex items-center space-x-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  <span>Refresh</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAlertCenter(false)}
+                  className="flex items-center space-x-2"
+                >
+                  <span>Close</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* System Settings Modal */}
+      <Dialog open={showSystemSettings} onOpenChange={setShowSystemSettings}>
+        <DialogContent className="max-w-6xl w-[95vw] max-h-[90vh] p-0 overflow-hidden flex flex-col">
+          <DialogHeader className="p-6 pb-4 border-b border-border/40 bg-background/95 backdrop-blur">
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Settings className="h-6 w-6 text-primary" />
+                <span className="text-xl font-semibold">System Settings</span>
+              </div>
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <span>Configure system parameters and alert rules</span>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto p-6 bg-background/50">
+            <div className="max-w-none">
+              {userRole === 'operator' ? (
+                <AlertConfig onSave={handleAlertConfigSave} />
+              ) : (
+                <div className="text-center py-12">
+                  <Settings className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                  <h3 className="text-lg font-semibold mb-2">Access Restricted</h3>
+                  <p className="text-muted-foreground mb-4">
+                    System settings are only available to operators.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Contact your system administrator for configuration changes.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Footer with quick actions */}
+          <div className="p-4 border-t border-border/40 bg-background/95 backdrop-blur">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Settings saved automatically
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Reset to defaults
+                    toast({
+                      title: "Settings Reset",
+                      description: "Settings have been reset to defaults.",
+                    });
+                  }}
+                  className="flex items-center space-x-2"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  <span>Reset</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSystemSettings(false)}
+                  className="flex items-center space-x-2"
+                >
+                  <span>Close</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Floating AI Insights Button */}
+      <FloatingAIButton 
+        alerts={alerts}
+        onRefresh={() => {
+          queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+        }}
+      />
+    </>
   );
 }

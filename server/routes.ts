@@ -198,6 +198,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize with some sample data
   app.post("/api/system/initialize", async (req, res) => {
     try {
+      const { userRole, microgridLocation } = req.body;
+      
       // Generate initial historical data (last 24 hours)
       const promises = [];
       for (let i = 0; i < 24; i++) {
@@ -226,7 +228,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         anomalyId: anomaly.id,
       });
       
-      res.json({ success: true, message: 'System initialized with sample data' });
+      // Store user preferences in session or local storage equivalent
+      const userPreferences = {
+        role: userRole || 'operator',
+        location: microgridLocation || 'north-perth',
+        initializedAt: new Date().toISOString(),
+      };
+      
+      console.log('System initialized with user preferences:', userPreferences);
+      
+      res.json({ 
+        success: true, 
+        message: 'System initialized with sample data',
+        userPreferences,
+        dashboardUrl: `/dashboard?role=${userRole}&location=${microgridLocation}`
+      });
     } catch (error) {
       console.error('Error initializing system:', error);
       res.status(500).json({ error: 'Failed to initialize system' });

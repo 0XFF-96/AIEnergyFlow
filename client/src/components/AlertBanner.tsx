@@ -81,32 +81,34 @@ export function AlertBanner({
   return (
     <Alert 
       className={cn(
-        "transition-all duration-200 hover-elevate",
+        "transition-all duration-200 hover-elevate p-4",
+        // 覆盖Alert组件的默认SVG定位样式
+        "[&>svg]:!static [&>svg~*]:!pl-0 [&>svg+div]:!translate-y-0",
         config.className
       )}
       data-testid={`alert-${type}`}
     >
-      <div className="flex items-start space-x-3">
+      <div className="flex items-start space-x-4">
         <Icon className="h-5 w-5 mt-0.5 flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center space-x-2 mb-1">
-            <h4 className="font-semibold text-sm">{title}</h4>
-            <Badge variant="outline" className={cn("text-xs", config.badgeClassName)}>
+          <div className="flex items-center space-x-3 mb-2">
+            <h4 className="font-semibold text-sm leading-none">{title}</h4>
+            <Badge variant="outline" className={cn("text-xs px-2 py-1 leading-none", config.badgeClassName)}>
               {type.toUpperCase()}
             </Badge>
           </div>
-          <AlertDescription className="text-sm opacity-90">
+          <AlertDescription className="text-sm opacity-90 leading-relaxed mb-2">
             {description}
           </AlertDescription>
-          <div className="text-xs opacity-70 mt-2">{timestamp}</div>
+          <div className="text-xs opacity-70 font-mono">{timestamp}</div>
         </div>
-        <div className="flex items-center space-x-2 flex-shrink-0">
+        <div className="flex items-center space-x-2 flex-shrink-0 mt-0.5">
           {actionLabel && onAction && (
             <Button
               variant="ghost"
               size="sm"
               onClick={handleAction}
-              className="text-xs h-7"
+              className="text-xs h-8 px-3"
               data-testid={`button-alert-action`}
             >
               {actionLabel}
@@ -117,10 +119,10 @@ export function AlertBanner({
               variant="ghost"
               size="icon"
               onClick={handleDismiss}
-              className="h-6 w-6"
+              className="h-8 w-8"
               data-testid="button-alert-dismiss"
             >
-              <X className="h-3 w-3" />
+              <X className="h-3.5 w-3.5" />
             </Button>
           )}
         </div>

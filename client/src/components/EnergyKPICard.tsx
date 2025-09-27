@@ -48,30 +48,30 @@ export function EnergyKPICard({
   icon,
 }: EnergyKPICardProps) {
   return (
-    <Card className="hover-elevate transition-all duration-200" data-testid={`card-kpi-${title.toLowerCase().replace(/\s+/g, '-')}`}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+    <Card className="hover-elevate transition-all duration-200 h-full" data-testid={`card-kpi-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        <CardTitle className="text-sm font-medium text-muted-foreground leading-none">
           {title}
         </CardTitle>
         {icon && (
-          <div className="text-muted-foreground">
+          <div className="text-muted-foreground flex items-center justify-center">
             {icon}
           </div>
         )}
       </CardHeader>
-      <CardContent>
-        <div className="flex items-baseline space-x-2">
-          <div className="text-2xl font-bold font-roboto">
+      <CardContent className="pt-0">
+        <div className="flex items-end space-x-2 mb-3">
+          <div className="text-2xl lg:text-3xl font-bold leading-none tracking-tight">
             {value}
           </div>
-          <span className="text-sm text-muted-foreground">{unit}</span>
+          <span className="text-sm text-muted-foreground leading-none pb-1">{unit}</span>
         </div>
         {trend && (
-          <div className="flex items-center space-x-2 mt-2">
+          <div className="flex items-center justify-between">
             <Badge
               variant="outline"
               className={cn(
-                "text-xs flex items-center space-x-1",
+                "text-xs flex items-center space-x-1 px-2 py-1",
                 getStatusColor(status)
               )}
             >
