@@ -231,7 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store user preferences in session or local storage equivalent
       const userPreferences = {
         role: userRole || 'operator',
-        location: microgridLocation || 'perth',
+        location: microgridLocation || 'north-perth',
         initializedAt: new Date().toISOString(),
       };
       

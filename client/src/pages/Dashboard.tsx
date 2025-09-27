@@ -7,6 +7,14 @@ import { AlertSystemIntegration } from '@/components/AlertSystemIntegration';
 import { AlertNotificationSystem } from '@/components/AlertNotificationSystem';
 import { AlertConfig } from '@/components/AlertConfig';
 import SystemInitialization, { UserRole, MicrogridLocation } from '@/components/SystemInitialization';
+
+// Import microgrid locations for display
+const microgridLocations = [
+  { value: 'north-perth', label: 'Microgrid North (Perth)', region: 'Northern Region' },
+  { value: 'south-bunbury', label: 'Microgrid South (Bunbury)', region: 'Southern Region' },
+  { value: 'east-kalgoorlie', label: 'Microgrid East (Kalgoorlie)', region: 'Eastern Region' },
+  { value: 'west-geraldton', label: 'Microgrid West (Geraldton)', region: 'Western Region' },
+];
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -319,7 +327,7 @@ export default function Dashboard() {
                   )}
                   {microgridLocation && (
                     <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/30">
-                      {microgridLocation.charAt(0).toUpperCase() + microgridLocation.slice(1)} Microgrid
+                      {microgridLocations.find(l => l.value === microgridLocation)?.label || 'Microgrid'}
                     </Badge>
                   )}
                 </div>

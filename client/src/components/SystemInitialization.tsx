@@ -7,7 +7,7 @@ import { Users, Shield, MapPin, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type UserRole = 'community' | 'operator';
-export type MicrogridLocation = 'perth' | 'fremantle' | 'mandurah' | 'joondalup';
+export type MicrogridLocation = 'north-perth' | 'south-bunbury' | 'east-kalgoorlie' | 'west-geraldton';
 
 interface SystemInitializationProps {
   onInitialize: (role: UserRole, location: MicrogridLocation) => void;
@@ -53,10 +53,10 @@ const RoleCard: React.FC<RoleCardProps> = ({ role, title, description, icon, isS
 };
 
 const microgridLocations = [
-  { value: 'perth', label: 'Perth CBD', region: 'Central Business District' },
-  { value: 'fremantle', label: 'Fremantle Port', region: 'Industrial Zone' },
-  { value: 'mandurah', label: 'Mandurah Residential', region: 'Residential Community' },
-  { value: 'joondalup', label: 'Joondalup Campus', region: 'Educational District' },
+  { value: 'north-perth', label: 'Microgrid North (Perth)', region: 'Northern Region' },
+  { value: 'south-bunbury', label: 'Microgrid South (Bunbury)', region: 'Southern Region' },
+  { value: 'east-kalgoorlie', label: 'Microgrid East (Kalgoorlie)', region: 'Eastern Region' },
+  { value: 'west-geraldton', label: 'Microgrid West (Geraldton)', region: 'Western Region' },
 ];
 
 export default function SystemInitialization({ onInitialize, isInitializing = false }: SystemInitializationProps) {
