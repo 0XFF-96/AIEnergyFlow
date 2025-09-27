@@ -6,6 +6,7 @@ import { AlertDashboard } from '@/components/AlertDashboard';
 import { AlertSystemIntegration } from '@/components/AlertSystemIntegration';
 import { AlertNotificationSystem } from '@/components/AlertNotificationSystem';
 import { AlertConfig } from '@/components/AlertConfig';
+import SystemInitialization, { UserRole, MicrogridLocation } from '@/components/SystemInitialization';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,9 @@ interface DashboardData {
 export default function Dashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showRoleSelection, setShowRoleSelection] = useState(true);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [microgridLocation, setMicrogridLocation] = useState<MicrogridLocation | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -51,24 +55,40 @@ export default function Dashboard() {
     enabled: isInitialized,
   });
 
+  // Handle role and location selection
+  const handleSystemInitialize = async (role: UserRole, location: MicrogridLocation) => {
+    setUserRole(role);
+    setMicrogridLocation(location);
+    
+    // Initialize system with user preferences
+    const response = await fetch('/api/system/initialize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userRole: role,
+        microgridLocation: location,
+      }),
+    });
+    
+    if (!response.ok) throw new Error('Failed to initialize system');
+    
+    const result = await response.json();
+    setIsInitialized(true);
+    setShowRoleSelection(false);
+    queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+    
+    toast({
+      title: "System Initialized",
+      description: `Welcome ${role === 'community' ? 'Community Member' : 'System Operator'}! ${location} microgrid is now active.`,
+    });
+    
+    return result;
+  };
+
   // Initialize system mutation
   const initializeMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch('/api/system/initialize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!response.ok) throw new Error('Failed to initialize system');
-      return response.json();
-    },
-    onSuccess: () => {
-      setIsInitialized(true);
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
-      toast({
-        title: "System Initialized",
-        description: "Energy management system is now active with sample data.",
-      });
-    },
+    mutationFn: ({ role, location }: { role: UserRole; location: MicrogridLocation }) => 
+      handleSystemInitialize(role, location),
     onError: (error) => {
       toast({
         title: "Initialization Failed",
@@ -184,39 +204,13 @@ export default function Dashboard() {
     });
   };
 
-  // Show initialization screen if not initialized
-  if (!isInitialized) {
+  // Show role selection screen if not initialized
+  if (!isInitialized || showRoleSelection) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh] px-4">
-          <Card className="w-full max-w-md mx-auto">
-            <CardHeader className="text-center">
-              <CardTitle className="flex flex-col sm:flex-row items-center justify-center space-x-2 space-y-2 sm:space-y-0">
-                <Zap className="h-6 w-6 text-primary" />
-                <span>Energy Management System</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-center space-y-4">
-              <p className="text-muted-foreground text-sm lg:text-base">
-                Initialize the system to start monitoring energy data and AI-powered anomaly detection.
-              </p>
-              <Button 
-                onClick={() => initializeMutation.mutate()}
-                disabled={initializeMutation.isPending}
-                className="w-full"
-                data-testid="button-initialize-system"
-              >
-                {initializeMutation.isPending ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Zap className="h-4 w-4 mr-2" />
-                )}
-                Initialize System
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </DashboardLayout>
+      <SystemInitialization
+        onInitialize={(role, location) => initializeMutation.mutate({ role, location })}
+        isInitializing={initializeMutation.isPending}
+      />
     );
   }
 
@@ -282,7 +276,7 @@ export default function Dashboard() {
       />
       
       <Tabs defaultValue="overview" className="space-y-8">
-        <TabsList className="grid w-full grid-cols-4 h-12">
+        <TabsList className={`grid w-full h-12 ${userRole === 'community' ? 'grid-cols-3' : 'grid-cols-4'}`}>
           <TabsTrigger value="overview" className="flex items-center justify-center space-x-2 py-3">
             <Activity className="h-4 w-4" />
             <span className="text-sm font-medium">Energy Overview</span>
@@ -296,10 +290,12 @@ export default function Dashboard() {
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="config" className="flex items-center justify-center space-x-2 py-3">
-            <Settings className="h-4 w-4" />
-            <span className="text-sm font-medium">Alert Config</span>
-          </TabsTrigger>
+          {userRole === 'operator' && (
+            <TabsTrigger value="config" className="flex items-center justify-center space-x-2 py-3">
+              <Settings className="h-4 w-4" />
+              <span className="text-sm font-medium">Alert Config</span>
+            </TabsTrigger>
+          )}
           <TabsTrigger value="analytics" className="flex items-center justify-center space-x-2 py-3">
             <TrendingUp className="h-4 w-4" />
             <span className="text-sm font-medium">Analytics</span>
@@ -314,42 +310,58 @@ export default function Dashboard() {
               <p className="text-muted-foreground mt-2 text-sm lg:text-base">
                 Real-time monitoring and AI-powered anomaly detection
               </p>
+              {(userRole || microgridLocation) && (
+                <div className="flex flex-wrap items-center gap-2 mt-3">
+                  {userRole && (
+                    <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30">
+                      {userRole === 'community' ? 'Community Member' : 'System Operator'}
+                    </Badge>
+                  )}
+                  {microgridLocation && (
+                    <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/30">
+                      {microgridLocation.charAt(0).toUpperCase() + microgridLocation.slice(1)} Microgrid
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-4 lg:items-end">
               <div className="text-center sm:text-right">
                 <div className="text-xs text-muted-foreground font-medium">Last Update</div>
                 <div className="font-mono text-base lg:text-lg mt-1">{currentTime.toLocaleTimeString()}</div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => simulateMutation.mutate('normal')}
-                  disabled={simulateMutation.isPending}
-                  data-testid="button-simulate-data"
-                  className="w-full sm:w-auto min-w-[120px]"
-                >
-                  {simulateMutation.isPending ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                  )}
-                  <span className="hidden sm:inline">Simulate Data</span>
-                  <span className="sm:hidden">Simulate</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => simulateMutation.mutate('anomaly')}
-                  disabled={simulateMutation.isPending}
-                  data-testid="button-simulate-anomaly"
-                  className="w-full sm:w-auto min-w-[120px]"
-                >
-                  <AlertTriangle className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Test Anomaly</span>
-                  <span className="sm:hidden">Test</span>
-                </Button>
-              </div>
+              {userRole === 'operator' && (
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => simulateMutation.mutate('normal')}
+                    disabled={simulateMutation.isPending}
+                    data-testid="button-simulate-data"
+                    className="w-full sm:w-auto min-w-[120px]"
+                  >
+                    {simulateMutation.isPending ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    <span className="hidden sm:inline">Simulate Data</span>
+                    <span className="sm:hidden">Simulate</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => simulateMutation.mutate('anomaly')}
+                    disabled={simulateMutation.isPending}
+                    data-testid="button-simulate-anomaly"
+                    className="w-full sm:w-auto min-w-[120px]"
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Test Anomaly</span>
+                    <span className="sm:hidden">Test</span>
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -515,16 +527,18 @@ export default function Dashboard() {
           />
         </TabsContent>
 
-        <TabsContent value="config" className="space-y-8">
-          <div className="text-center lg:text-left">
-            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight leading-tight">Alert Configuration</h2>
-            <p className="text-muted-foreground mt-2 text-sm lg:text-base">
-              Configure threshold rules, AI detection, and notification settings
-            </p>
-          </div>
-          
-          <AlertConfig onSave={handleAlertConfigSave} />
-        </TabsContent>
+        {userRole === 'operator' && (
+          <TabsContent value="config" className="space-y-8">
+            <div className="text-center lg:text-left">
+              <h2 className="text-2xl lg:text-3xl font-bold tracking-tight leading-tight">Alert Configuration</h2>
+              <p className="text-muted-foreground mt-2 text-sm lg:text-base">
+                Configure threshold rules, AI detection, and notification settings
+              </p>
+            </div>
+            
+            <AlertConfig onSave={handleAlertConfigSave} />
+          </TabsContent>
+        )}
 
         <TabsContent value="analytics" className="space-y-8">
           <div className="text-center lg:text-left">
