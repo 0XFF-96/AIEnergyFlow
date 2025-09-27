@@ -362,14 +362,14 @@ export default function Dashboard() {
                 <span className="text-sm">System Health</span>
                 <span className="font-mono text-sm text-primary">94.7%</span>
               </div>
-              {aiInsights && 'insights' in aiInsights && (
+              {aiInsights && typeof aiInsights === 'object' && aiInsights !== null && 'insights' in aiInsights ? (
                 <div className="mt-4 p-3 bg-muted/50 rounded-md">
                   <h4 className="text-sm font-medium mb-2">AI Daily Insights</h4>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     {(aiInsights as any).insights}
                   </p>
                 </div>
-              )}
+              ) : null}
               <Button 
                 variant="outline" 
                 size="sm" 
