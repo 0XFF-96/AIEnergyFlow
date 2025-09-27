@@ -7,6 +7,7 @@ import { AlertSystemIntegration } from '@/components/AlertSystemIntegration';
 import { AlertNotificationSystem } from '@/components/AlertNotificationSystem';
 import { AlertConfig } from '@/components/AlertConfig';
 import SystemInitialization, { UserRole, MicrogridLocation } from '@/components/SystemInitialization';
+import { FloatingAIButton } from '@/components/FloatingAIButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 // Import microgrid locations for display
@@ -412,17 +413,16 @@ export default function Dashboard() {
           height={400}
         />
 
-        {/* Bottom Grid - System Status and AI Monitoring */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {/* System Status */}
-          <Card className="hover-elevate">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <CheckCircle className="h-5 w-5 text-primary" />
-                <span>System Status</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        {/* System Status */}
+        <Card className="hover-elevate">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <CheckCircle className="h-5 w-5 text-primary" />
+              <span>System Status</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm">Solar Panels</span>
                 <Badge className={systemStatus.solarPanels === 'online' ? 'bg-primary/20 text-primary border-primary/30' : 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'}>
@@ -443,55 +443,9 @@ export default function Dashboard() {
                 <span className="text-sm">AI Monitoring</span>
                 <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">Active</Badge>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* AI Monitoring */}
-          <Card className="hover-elevate">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Zap className="h-5 w-5 text-purple-400" />
-                <span>AI Insights</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Anomaly Detection</span>
-                <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">Active</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Pattern Analysis</span>
-                <Badge className="bg-primary/20 text-primary border-primary/30">Learning</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Active Alerts</span>
-                <span className="font-mono text-sm text-yellow-300">{alerts.length}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">System Health</span>
-                <span className="font-mono text-sm text-primary">94.7%</span>
-              </div>
-              {aiInsights && typeof aiInsights === 'object' && aiInsights !== null && 'insights' in aiInsights ? (
-                <div className="mt-4 p-3 bg-muted/50 rounded-md">
-                  <h4 className="text-sm font-medium mb-2">AI Daily Insights</h4>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {(aiInsights as any).insights}
-                  </p>
-                </div>
-              ) : null}
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full mt-4"
-                onClick={() => handleAlertAction('ai-insights', 'view')}
-                data-testid="button-ai-insights"
-              >
-                <TrendingUp className="h-4 w-4 mr-2" />
-                View Detailed Insights
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Energy Efficiency Report */}
         <Card className="hover-elevate">
@@ -712,6 +666,14 @@ export default function Dashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Floating AI Insights Button */}
+      <FloatingAIButton 
+        alerts={alerts}
+        onRefresh={() => {
+          queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
+        }}
+      />
     </>
   );
 }
