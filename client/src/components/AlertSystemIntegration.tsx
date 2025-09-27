@@ -65,25 +65,25 @@ export function AlertSystemIntegration({ alerts, onAlertAction }: AlertSystemInt
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Button
               variant="outline"
               size="sm"
               onClick={handleViewAll}
-              className="flex items-center space-x-2"
+              className="flex items-center justify-center space-x-2 h-10"
             >
               <BarChart3 className="h-4 w-4" />
-              <span>View History</span>
+              <span className="text-sm">View History</span>
             </Button>
             
             <Button
               variant="outline"
               size="sm"
               onClick={() => handleExport('csv')}
-              className="flex items-center space-x-2"
+              className="flex items-center justify-center space-x-2 h-10"
             >
               <Download className="h-4 w-4" />
-              <span>Export CSV</span>
+              <span className="text-sm">Export CSV</span>
             </Button>
             
             <Button
@@ -103,10 +103,10 @@ export function AlertSystemIntegration({ alerts, onAlertAction }: AlertSystemInt
                 };
                 console.log('Creating manual alert:', mockAlert);
               }}
-              className="flex items-center space-x-2"
+              className="flex items-center justify-center space-x-2 h-10"
             >
               <Plus className="h-4 w-4" />
-              <span>Create Alert</span>
+              <span className="text-sm">Create Alert</span>
             </Button>
             
             <Button
@@ -116,10 +116,10 @@ export function AlertSystemIntegration({ alerts, onAlertAction }: AlertSystemInt
                 // Refresh alerts
                 console.log('Refreshing alerts...');
               }}
-              className="flex items-center space-x-2"
+              className="flex items-center justify-center space-x-2 h-10"
             >
               <RefreshCw className="h-4 w-4" />
-              <span>Refresh</span>
+              <span className="text-sm">Refresh</span>
             </Button>
           </div>
           

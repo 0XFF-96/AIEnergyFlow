@@ -281,77 +281,77 @@ export default function Dashboard() {
         onAlertAction={handleAlertDismiss}
       />
       
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview" className="flex items-center space-x-2">
+      <Tabs defaultValue="overview" className="space-y-8">
+        <TabsList className="grid w-full grid-cols-4 h-12">
+          <TabsTrigger value="overview" className="flex items-center justify-center space-x-2 py-3">
             <Activity className="h-4 w-4" />
-            <span>Energy Overview</span>
+            <span className="text-sm font-medium">Energy Overview</span>
           </TabsTrigger>
-          <TabsTrigger value="alerts" className="flex items-center space-x-2">
+          <TabsTrigger value="alerts" className="flex items-center justify-center space-x-2 py-3 relative">
             <Bell className="h-4 w-4" />
-            <span>Alert Center</span>
+            <span className="text-sm font-medium">Alert Center</span>
             {alerts.length > 0 && (
-              <Badge variant="outline" className="ml-1 bg-red-500/20 text-red-300 border-red-500/30">
+              <Badge variant="outline" className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-red-500/20 text-red-300 border-red-500/30 text-xs">
                 {alerts.length}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="config" className="flex items-center space-x-2">
+          <TabsTrigger value="config" className="flex items-center justify-center space-x-2 py-3">
             <Settings className="h-4 w-4" />
-            <span>Alert Config</span>
+            <span className="text-sm font-medium">Alert Config</span>
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center space-x-2">
+          <TabsTrigger value="analytics" className="flex items-center justify-center space-x-2 py-3">
             <TrendingUp className="h-4 w-4" />
-            <span>Analytics</span>
+            <span className="text-sm font-medium">Analytics</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="overview" className="space-y-8">
           {/* Real-time Status Header */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="text-center lg:text-left">
-              <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Energy Dashboard</h2>
-              <p className="text-muted-foreground mt-1">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+            <div className="flex-1 text-center lg:text-left">
+              <h2 className="text-2xl lg:text-3xl font-bold tracking-tight leading-tight">Energy Dashboard</h2>
+              <p className="text-muted-foreground mt-2 text-sm lg:text-base">
                 Real-time monitoring and AI-powered anomaly detection
               </p>
             </div>
-          <div className="flex flex-col sm:flex-row items-center gap-4">
-            <div className="text-center sm:text-right">
-              <div className="text-sm text-muted-foreground">Last Update</div>
-              <div className="font-mono text-lg">{currentTime.toLocaleTimeString()}</div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => simulateMutation.mutate('normal')}
-                disabled={simulateMutation.isPending}
-                data-testid="button-simulate-data"
-                className="w-full sm:w-auto"
-              >
-                {simulateMutation.isPending ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                )}
-                <span className="hidden sm:inline">Simulate Data</span>
-                <span className="sm:hidden">Simulate</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => simulateMutation.mutate('anomaly')}
-                disabled={simulateMutation.isPending}
-                data-testid="button-simulate-anomaly"
-                className="w-full sm:w-auto"
-              >
-                <AlertTriangle className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Test Anomaly</span>
-                <span className="sm:hidden">Test</span>
-              </Button>
+            <div className="flex flex-col sm:flex-row items-center gap-4 lg:items-end">
+              <div className="text-center sm:text-right">
+                <div className="text-xs text-muted-foreground font-medium">Last Update</div>
+                <div className="font-mono text-base lg:text-lg mt-1">{currentTime.toLocaleTimeString()}</div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => simulateMutation.mutate('normal')}
+                  disabled={simulateMutation.isPending}
+                  data-testid="button-simulate-data"
+                  className="w-full sm:w-auto min-w-[120px]"
+                >
+                  {simulateMutation.isPending ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  <span className="hidden sm:inline">Simulate Data</span>
+                  <span className="sm:hidden">Simulate</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => simulateMutation.mutate('anomaly')}
+                  disabled={simulateMutation.isPending}
+                  data-testid="button-simulate-anomaly"
+                  className="w-full sm:w-auto min-w-[120px]"
+                >
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Test Anomaly</span>
+                  <span className="sm:hidden">Test</span>
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
 
         {/* KPI Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -501,10 +501,10 @@ export default function Dashboard() {
         </Card>
         </TabsContent>
 
-        <TabsContent value="alerts" className="space-y-6">
-          <div className="text-center lg:text-left mb-6">
-            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Alert Management Center</h2>
-            <p className="text-muted-foreground mt-1">
+        <TabsContent value="alerts" className="space-y-8">
+          <div className="text-center lg:text-left">
+            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight leading-tight">Alert Management Center</h2>
+            <p className="text-muted-foreground mt-2 text-sm lg:text-base">
               Comprehensive alert monitoring, management, and analytics
             </p>
           </div>
@@ -515,10 +515,10 @@ export default function Dashboard() {
           />
         </TabsContent>
 
-        <TabsContent value="config" className="space-y-6">
-          <div className="text-center lg:text-left mb-6">
-            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Alert Configuration</h2>
-            <p className="text-muted-foreground mt-1">
+        <TabsContent value="config" className="space-y-8">
+          <div className="text-center lg:text-left">
+            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight leading-tight">Alert Configuration</h2>
+            <p className="text-muted-foreground mt-2 text-sm lg:text-base">
               Configure threshold rules, AI detection, and notification settings
             </p>
           </div>
@@ -526,10 +526,10 @@ export default function Dashboard() {
           <AlertConfig onSave={handleAlertConfigSave} />
         </TabsContent>
 
-        <TabsContent value="analytics" className="space-y-6">
-          <div className="text-center lg:text-left mb-6">
-            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Analytics & Reports</h2>
-            <p className="text-muted-foreground mt-1">
+        <TabsContent value="analytics" className="space-y-8">
+          <div className="text-center lg:text-left">
+            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight leading-tight">Analytics & Reports</h2>
+            <p className="text-muted-foreground mt-2 text-sm lg:text-base">
               Deep insights into energy patterns and system performance
             </p>
           </div>

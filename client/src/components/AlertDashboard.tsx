@@ -383,35 +383,35 @@ function AlertList({ alerts, onAlertAction }: { alerts: Alert[], onAlertAction: 
             <div
               key={alert.id}
               className={cn(
-                "p-4 rounded-lg border transition-all duration-200 hover:shadow-md cursor-pointer",
+                "p-5 rounded-lg border transition-all duration-200 hover:shadow-md cursor-pointer",
                 config.bgColor,
                 config.borderColor
               )}
             >
-              <div className="flex items-start space-x-3">
+              <div className="flex items-start space-x-4">
                 <Icon className={cn("h-5 w-5 mt-0.5 flex-shrink-0", config.textColor)} />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <h4 className="text-sm font-semibold truncate">{alert.title}</h4>
-                    <Badge variant="outline" className={cn("text-xs", config.badge)}>
+                  <div className="flex items-center space-x-3 mb-3">
+                    <h4 className="text-sm font-semibold truncate leading-none">{alert.title}</h4>
+                    <Badge variant="outline" className={cn("text-xs px-2 py-1 leading-none", config.badge)}>
                       {alert.severity?.toUpperCase() || 'UNKNOWN'}
                     </Badge>
                     {alert.status === 'acknowledged' && (
-                      <Badge variant="outline" className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs">
+                      <Badge variant="outline" className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs px-2 py-1 leading-none">
                         ACKNOWLEDGED
                       </Badge>
                     )}
                     {alert.status === 'resolved' && (
-                      <Badge variant="outline" className="bg-green-500/20 text-green-300 border-green-500/30 text-xs">
+                      <Badge variant="outline" className="bg-green-500/20 text-green-300 border-green-500/30 text-xs px-2 py-1 leading-none">
                         RESOLVED
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm opacity-90 mb-3 line-clamp-2">{alert.description}</p>
+                  <p className="text-sm opacity-90 mb-3 line-clamp-2 leading-relaxed">{alert.description}</p>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2 text-xs opacity-70">
                       <Clock className="h-3 w-3" />
-                      <span>{formatTimestamp(alert.timestamp)}</span>
+                      <span className="font-mono">{formatTimestamp(alert.timestamp)}</span>
                       {alert.location && (
                         <>
                           <span>•</span>
@@ -419,7 +419,7 @@ function AlertList({ alerts, onAlertAction }: { alerts: Alert[], onAlertAction: 
                         </>
                       )}
                     </div>
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center space-x-2">
                       {alert.status === 'active' && (
                         <>
                           <Button
@@ -429,7 +429,7 @@ function AlertList({ alerts, onAlertAction }: { alerts: Alert[], onAlertAction: 
                               e.stopPropagation();
                               onAlertAction(alert.id, 'acknowledge');
                             }}
-                            className="h-7 px-3 text-xs"
+                            className="h-8 px-3 text-xs"
                           >
                             Acknowledge
                           </Button>
@@ -440,7 +440,7 @@ function AlertList({ alerts, onAlertAction }: { alerts: Alert[], onAlertAction: 
                               e.stopPropagation();
                               onAlertAction(alert.id, 'resolve');
                             }}
-                            className="h-7 px-3 text-xs"
+                            className="h-8 px-3 text-xs"
                           >
                             Resolve
                           </Button>
@@ -454,7 +454,7 @@ function AlertList({ alerts, onAlertAction }: { alerts: Alert[], onAlertAction: 
                             e.stopPropagation();
                             onAlertAction(alert.id, 'resolve');
                           }}
-                          className="h-7 px-3 text-xs"
+                          className="h-8 px-3 text-xs"
                         >
                           Resolve
                         </Button>
@@ -466,9 +466,9 @@ function AlertList({ alerts, onAlertAction }: { alerts: Alert[], onAlertAction: 
                           e.stopPropagation();
                           onAlertAction(alert.id, 'dismiss');
                         }}
-                        className="h-7 w-7 p-0"
+                        className="h-8 w-8 p-0"
                       >
-                        <X className="h-3 w-3" />
+                        <X className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </div>
