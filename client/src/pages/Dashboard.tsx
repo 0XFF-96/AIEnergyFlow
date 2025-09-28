@@ -137,13 +137,6 @@ export default function Dashboard() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
-      if (data.anomalyDetected) {
-        toast({
-          title: "Anomaly Detected",
-          description: `AI detected an anomaly with score ${data.anomalyScore.toFixed(2)}`,
-          variant: "destructive",
-        });
-      }
     },
   });
 
@@ -501,12 +494,6 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Main Chart */}
-        <EnergyChart
-          title="24-Hour Energy Overview"
-          data={chartData}
-          height={400}
-        />
 
         {/* New Chart Components Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -517,22 +504,21 @@ export default function Dashboard() {
             height={400}
           />
           
-          {/* Generation Line Chart */}
-          <LineGenerationChart
-            data={mockGenerationData}
-            title="Generation Over Time"
+          <EnergyAmountBarChart
+            data={mockEnergyAmountData}
+            title="Energy Production by Source"
             height={400}
           />
         </div>
 
         {/* Second Row - Carbon Intensity and Demand Storage */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <CarbonIntensityPieChart
-            data={mockCarbonIntensityData}
-            title="Carbon Intensity Distribution"
-            totalEmissions={180}
+          <LineGenerationChart
+            data={mockGenerationData}
+            title="Generation Over Time"
             height={400}
           />
+
           
           <DemandStorageChart
             data={mockDemandStorageData}
@@ -543,17 +529,19 @@ export default function Dashboard() {
 
         {/* Third Row - Energy Amount and Real-time Alerts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <EnergyAmountBarChart
-            data={mockEnergyAmountData}
-            title="Energy Production by Source"
-            height={400}
-          />
+          
           
           <RealtimeAlertsComponent
             alerts={[]}
             title="Real-time System Alerts"
             maxAlerts={5}
             onAlertAction={handleAlertAction}
+          />
+                    <CarbonIntensityPieChart
+            data={mockCarbonIntensityData}
+            title="Carbon Intensity Distribution"
+            totalEmissions={180}
+            height={400}
           />
         </div>
 
@@ -660,55 +648,26 @@ export default function Dashboard() {
 
           {/* Advanced Analytics Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Energy Mix Analysis */}
-            <EnergyMixPieChart
-              data={mockEnergyMixData}
-              title="Energy Mix Analysis"
-              height={350}
-            />
-            
-            {/* Carbon Intensity Analysis */}
-            <CarbonIntensityPieChart
-              data={mockCarbonIntensityData}
-              title="Environmental Impact Analysis"
-              totalEmissions={180}
-              height={350}
-            />
+            <Card className="p-4 hover-elevate flex flex-col lg:flex-row items-center gap-4">
+              <img
+                src="/images/energy-mix.png"
+                alt="Energy Mix"
+                className="w-24 h-24 object-contain"
+              />
+              <div>
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold">Energy Mix Analysis</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm">
+                    Solar and wind contribute ~74% of current energy. Gas and nuclear fill the rest.
+                  </p>
+                </CardContent>
+              </div>
+            </Card>
           </div>
 
-          {/* Generation and Storage Analytics */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <LineGenerationChart
-              data={mockGenerationData}
-              title="Generation Pattern Analysis"
-              height={350}
-            />
-            
-            <DemandStorageChart
-              data={mockDemandStorageData}
-              title="Demand & Storage Analytics"
-              height={350}
-            />
-          </div>
-
-          {/* Production Analytics */}
-          <div className="grid grid-cols-1 gap-6">
-            <EnergyAmountBarChart
-              data={mockEnergyAmountData}
-              title="Energy Production Analytics"
-              height={400}
-            />
-          </div>
-
-          {/* Real-time Monitoring */}
-          <div className="grid grid-cols-1 gap-6">
-            <RealtimeAlertsComponent
-              alerts={[]}
-              title="System Monitoring & Alerts"
-              maxAlerts={8}
-              onAlertAction={handleAlertAction}
-            />
-          </div>
+          
         </TabsContent>
       </Tabs>
       </DashboardLayout>
