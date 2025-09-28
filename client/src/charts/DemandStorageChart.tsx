@@ -16,10 +16,16 @@ export function DemandStorageChart({ data, title = "Demand vs Storage Balance", 
   return (
     <div className="w-full bg-card border border-card-border rounded-2xl p-6">
       {title && (
-        <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <div className="w-1 h-6 bg-orange-400 rounded-full"></div>
-          {title}
-        </h3>
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-2 h-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-full animate-pulse"></div>
+            <h3 className="text-xl font-semibold text-foreground">
+              {title}
+            </h3>
+            <div className="w-2 h-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-full animate-pulse"></div>
+          </div>
+          <p className="text-muted-foreground text-sm font-medium">Demand patterns and storage optimization</p>
+        </div>
       )}
       <ResponsiveContainer width="100%" height={height}>
         <ComposedChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
@@ -112,23 +118,28 @@ export function DemandStorageChart({ data, title = "Demand vs Storage Balance", 
       </ResponsiveContainer>
       
       {/* Storage Level Indicator */}
-      <div className="mt-4 flex items-center justify-between text-sm">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-            <span className="text-muted-foreground">Storage: Optimal (60%+)</span>
+      <div className="mt-6 bg-gradient-to-r from-slate-800/30 to-slate-700/30 border border-slate-600/20 rounded-xl p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full shadow-sm"></div>
+              <span className="text-muted-foreground text-sm font-medium">Optimal (60%+)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full shadow-sm"></div>
+              <span className="text-muted-foreground text-sm font-medium">Moderate (20-60%)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-gradient-to-r from-red-400 to-red-600 rounded-full shadow-sm"></div>
+              <span className="text-muted-foreground text-sm font-medium">Low (&lt;20%)</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
-            <span className="text-muted-foreground">Storage: Moderate (20-60%)</span>
+          <div className="text-right">
+            <div className="text-xs text-muted-foreground mb-1">Current Level</div>
+            <div className="text-lg font-bold text-foreground">
+              {data[data.length - 1]?.storage.toFixed(1)}%
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-            <span className="text-muted-foreground">Storage: Low (&lt;20%)</span>
-          </div>
-        </div>
-        <div className="text-muted-foreground">
-          Current: {data[data.length - 1]?.storage.toFixed(1)}%
         </div>
       </div>
     </div>

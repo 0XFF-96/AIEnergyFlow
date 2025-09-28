@@ -18,10 +18,16 @@ export function LineGenerationChart({ data, title = "Generation Over Time", heig
   return (
     <div className="w-full bg-card border border-card-border rounded-2xl p-6">
       {title && (
-        <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <div className="w-1 h-6 bg-blue-400 rounded-full"></div>
-          {title}
-        </h3>
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-2 h-2 bg-gradient-to-r from-blue-400 to-cyan-500 rounded-full animate-pulse"></div>
+            <h3 className="text-xl font-semibold text-foreground">
+              {title}
+            </h3>
+            <div className="w-2 h-2 bg-gradient-to-r from-blue-400 to-cyan-500 rounded-full animate-pulse"></div>
+          </div>
+          <p className="text-muted-foreground text-sm font-medium">24-hour generation trends and patterns</p>
+        </div>
       )}
       <ResponsiveContainer width="100%" height={height}>
         <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>

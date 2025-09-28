@@ -87,11 +87,15 @@ export function EnergyMixPieChart({
   return (
     <div className="w-full bg-card border border-card-border rounded-2xl p-6">
       {title && (
-        <div className="text-center mb-4">
-          <h3 className="text-xl font-semibold text-white mb-2">
-            {title}
-          </h3>
-          <p className="text-muted-foreground text-sm">Real-time energy generation mix</p>
+        <div className="text-center mb-6">
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <div className="w-2 h-2 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full animate-pulse"></div>
+            <h3 className="text-xl font-semibold text-foreground">
+              {title}
+            </h3>
+            <div className="w-2 h-2 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full animate-pulse"></div>
+          </div>
+          <p className="text-muted-foreground text-sm font-medium">Real-time energy generation mix</p>
         </div>
       )}
       
@@ -120,23 +124,29 @@ export function EnergyMixPieChart({
 
       {/* Summary Statistics */}
       <div className="mt-6 grid grid-cols-2 gap-4 text-center">
-        <div className="bg-muted rounded-lg p-3">
-          <p className="text-2xl font-bold text-green-400">
-            {data
-              .filter(item => ['Wind', 'Solar', 'Hydro', 'Nuclear'].includes(item.name))
-              .reduce((acc, item) => acc + item.value, 0)
-              .toFixed(1)}%
-          </p>
-          <p className="text-muted-foreground text-sm">Clean Energy</p>
+        <div className="bg-gradient-to-br from-emerald-500/10 to-green-500/10 border border-emerald-500/20 rounded-xl p-4 hover:from-emerald-500/15 hover:to-green-500/15 transition-all duration-300">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
+            <p className="text-2xl font-bold text-emerald-400">
+              {data
+                .filter(item => ['Wind', 'Solar', 'Hydro', 'Nuclear'].includes(item.name))
+                .reduce((acc, item) => acc + item.value, 0)
+                .toFixed(1)}%
+            </p>
+          </div>
+          <p className="text-muted-foreground text-sm font-medium">Clean Energy</p>
         </div>
-        <div className="bg-muted rounded-lg p-3">
-          <p className="text-2xl font-bold text-orange-400">
-            {data
-              .filter(item => ['Gas', 'Coal', 'Oil'].includes(item.name))
-              .reduce((acc, item) => acc + item.value, 0)
-              .toFixed(1)}%
-          </p>
-          <p className="text-muted-foreground text-sm">Fossil Fuels</p>
+        <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/20 rounded-xl p-4 hover:from-orange-500/15 hover:to-red-500/15 transition-all duration-300">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+            <p className="text-2xl font-bold text-orange-400">
+              {data
+                .filter(item => ['Gas', 'Coal', 'Oil'].includes(item.name))
+                .reduce((acc, item) => acc + item.value, 0)
+                .toFixed(1)}%
+            </p>
+          </div>
+          <p className="text-muted-foreground text-sm font-medium">Fossil Fuels</p>
         </div>
       </div>
     </div>

@@ -4,7 +4,6 @@ import { EnergyChart } from '@/components/EnergyChart';
 import { AlertBanner } from '@/components/AlertBanner';
 import { AlertDashboard } from '@/components/AlertDashboard';
 import { AlertSystemIntegration } from '@/components/AlertSystemIntegration';
-import { AlertNotificationSystem } from '@/components/AlertNotificationSystem';
 import { AlertConfig } from '@/components/AlertConfig';
 import SystemInitialization, { UserRole, MicrogridLocation } from '@/components/SystemInitialization';
 import { FloatingAIButton } from '@/components/FloatingAIButton';
@@ -162,19 +161,7 @@ export default function Dashboard() {
     refetchInterval: 300000, // Refresh every 5 minutes
   });
 
-  // Memoize processed alerts to prevent unnecessary re-renders
-  const processedAlerts = useMemo(() => {
-    const alerts = (dashboardData as DashboardData)?.alerts || [];
-    return alerts.map((alert: any) => ({
-      ...alert,
-      severity: alert.type === 'critical' ? 'critical' : alert.type === 'warning' ? 'warning' : 'info',
-      timestamp: new Date(alert.timestamp)
-    }));
-  }, [(dashboardData as DashboardData)?.alerts]);
-
-  const handleAlertDismiss = (alertId: string) => {
-    dismissAlertMutation.mutate(alertId);
-  };
+  // Alert processing removed - no more popup notifications
 
   const handleAlertAction = (alertId: string, action: string, notes?: string) => {
     console.log(`Alert ${alertId}: ${action} action triggered`, { notes });
@@ -271,13 +258,43 @@ export default function Dashboard() {
   const dailyTotals = data?.dailyTotals || { consumption: 0, generation: 0, co2Saved: 0 };
   const systemStatus = data?.systemStatus || {};
 
+  // Unified color palette for consistent visual design
+  const energyColors = {
+    solar: '#f59e0b',      // Amber - warm, energetic
+    wind: '#10b981',        // Emerald - natural, clean
+    gas: '#ef4444',         // Red - warning, fossil fuel
+    nuclear: '#3b82f6',     // Blue - stable, reliable
+    hydro: '#06b6d4',       // Cyan - water, flow
+    coal: '#6b7280',        // Gray - dirty, outdated
+    oil: '#dc2626',         // Dark red - high carbon
+    biomass: '#84cc16',     // Lime - organic, renewable
+    geothermal: '#8b5cf6',  // Purple - earth, deep
+    storage: '#6366f1'      // Indigo - technology, smart
+  };
+
+  const statusColors = {
+    excellent: '#10b981',   // Green - excellent performance
+    good: '#84cc16',        // Lime - good performance  
+    moderate: '#f59e0b',    // Amber - moderate performance
+    poor: '#f97316',        // Orange - poor performance
+    critical: '#ef4444'     // Red - critical issues
+  };
+
+  const intensityColors = {
+    veryLow: '#10b981',     // Green - very low carbon
+    low: '#84cc16',         // Lime - low carbon
+    moderate: '#f59e0b',    // Amber - moderate carbon
+    high: '#f97316',        // Orange - high carbon
+    veryHigh: '#ef4444'     // Red - very high carbon
+  };
+
   // Generate mock data for new chart components
   const generateMockEnergyMixData = () => [
-    { name: 'Solar', value: 45.2, color: '#facc15', intensity: 0 },
-    { name: 'Wind', value: 28.7, color: '#22c55e', intensity: 0 },
-    { name: 'Gas', value: 15.3, color: '#ef4444', intensity: 350 },
-    { name: 'Nuclear', value: 8.1, color: '#3b82f6', intensity: 12 },
-    { name: 'Hydro', value: 2.7, color: '#06b6d4', intensity: 0 }
+    { name: 'Solar', value: 45.2, color: energyColors.solar, intensity: 0 },
+    { name: 'Wind', value: 28.7, color: energyColors.wind, intensity: 0 },
+    { name: 'Gas', value: 15.3, color: energyColors.gas, intensity: 350 },
+    { name: 'Nuclear', value: 8.1, color: energyColors.nuclear, intensity: 12 },
+    { name: 'Hydro', value: 2.7, color: energyColors.hydro, intensity: 0 }
   ];
 
   const generateMockGenerationData = () => {
@@ -301,11 +318,11 @@ export default function Dashboard() {
   };
 
   const generateMockCarbonIntensityData = () => [
-    { name: 'Very Low (0-50)', value: 35.2, color: '#22c55e', range: '0-50 gCO₂/kWh', impact: 'very-low' },
-    { name: 'Low (50-150)', value: 28.7, color: '#84cc16', range: '50-150 gCO₂/kWh', impact: 'low' },
-    { name: 'Moderate (150-300)', value: 20.1, color: '#eab308', range: '150-300 gCO₂/kWh', impact: 'moderate' },
-    { name: 'High (300-500)', value: 12.3, color: '#f97316', range: '300-500 gCO₂/kWh', impact: 'high' },
-    { name: 'Very High (500+)', value: 3.7, color: '#ef4444', range: '500+ gCO₂/kWh', impact: 'very-high' }
+    { name: 'Very Low (0-50)', value: 35.2, color: intensityColors.veryLow, range: '0-50 gCO₂/kWh', impact: 'very-low' },
+    { name: 'Low (50-150)', value: 28.7, color: intensityColors.low, range: '50-150 gCO₂/kWh', impact: 'low' },
+    { name: 'Moderate (150-300)', value: 20.1, color: intensityColors.moderate, range: '150-300 gCO₂/kWh', impact: 'moderate' },
+    { name: 'High (300-500)', value: 12.3, color: intensityColors.high, range: '300-500 gCO₂/kWh', impact: 'high' },
+    { name: 'Very High (500+)', value: 3.7, color: intensityColors.veryHigh, range: '500+ gCO₂/kWh', impact: 'very-high' }
   ];
 
   const generateMockDemandStorageData = () => {
@@ -325,11 +342,11 @@ export default function Dashboard() {
   };
 
   const generateMockEnergyAmountData = () => [
-    { source: 'Solar Panels', amount: 125.4, color: '#facc15', capacity: 200 },
-    { source: 'Wind Turbines', amount: 89.2, color: '#22c55e', capacity: 150 },
-    { source: 'Gas Generator', amount: 45.8, color: '#ef4444', capacity: 100 },
-    { source: 'Nuclear Plant', amount: 15.0, color: '#3b82f6', capacity: 20 },
-    { source: 'Hydro Dam', amount: 8.5, color: '#06b6d4', capacity: 15 }
+    { source: 'Solar Panels', amount: 125.4, color: energyColors.solar, capacity: 200 },
+    { source: 'Wind Turbines', amount: 89.2, color: energyColors.wind, capacity: 150 },
+    { source: 'Gas Generator', amount: 45.8, color: energyColors.gas, capacity: 100 },
+    { source: 'Nuclear Plant', amount: 15.0, color: energyColors.nuclear, capacity: 20 },
+    { source: 'Hydro Dam', amount: 8.5, color: energyColors.hydro, capacity: 15 }
   ];
 
   const mockEnergyMixData = generateMockEnergyMixData();
@@ -347,7 +364,7 @@ export default function Dashboard() {
           title={alert.title}
           description={alert.description}
           timestamp={new Date(alert.timestamp).toLocaleString()}
-          onDismiss={() => handleAlertDismiss(alert.id)}
+          onDismiss={() => console.log('Alert dismissed:', alert.id)}
           actionLabel="Investigate"
           onAction={() => handleAlertAction(alert.id, 'investigate')}
         />
@@ -365,10 +382,6 @@ export default function Dashboard() {
         userRole={userRole || undefined}
         microgridLocation={microgridLocation || undefined}
       >
-        <AlertNotificationSystem 
-          alerts={processedAlerts}
-          onAlertAction={handleAlertDismiss}
-        />
       
       <Tabs defaultValue="overview" className="space-y-8">
         <TabsList className="grid w-full h-12 grid-cols-2">
@@ -530,7 +543,7 @@ export default function Dashboard() {
           />
           
           <RealtimeAlertsComponent
-            alerts={processedAlerts}
+            alerts={[]}
             title="Real-time System Alerts"
             maxAlerts={5}
             onAlertAction={handleAlertAction}
@@ -683,7 +696,7 @@ export default function Dashboard() {
           {/* Real-time Monitoring */}
           <div className="grid grid-cols-1 gap-6">
             <RealtimeAlertsComponent
-              alerts={processedAlerts}
+              alerts={[]}
               title="System Monitoring & Alerts"
               maxAlerts={8}
               onAlertAction={handleAlertAction}
@@ -717,7 +730,7 @@ export default function Dashboard() {
           <div className="flex-1 overflow-y-auto p-6 bg-background/50">
             <div className="max-w-none">
               <AlertSystemIntegration
-                alerts={processedAlerts}
+                alerts={[]}
                 onAlertAction={handleAlertAction}
               />
             </div>

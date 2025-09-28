@@ -131,14 +131,16 @@ export function RealtimeAlertsComponent({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full animate-pulse"></div>
             <Zap className="h-6 w-6 text-yellow-400" />
-            <h3 className="text-xl font-semibold text-white">{title}</h3>
+            <h3 className="text-xl font-semibold text-foreground">{title}</h3>
+            <div className="w-2 h-2 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full animate-pulse"></div>
           </div>
           {autoRefresh && (
-            <div className="flex items-center gap-1 text-muted-foreground text-sm">
-              <Clock className="h-4 w-4" />
-              <span>Live</span>
+            <div className="flex items-center gap-1 text-muted-foreground text-sm bg-yellow-500/10 px-2 py-1 rounded-full border border-yellow-500/20">
+              <Clock className="h-3 w-3" />
+              <span className="font-medium">Live</span>
             </div>
           )}
         </div>
@@ -150,23 +152,35 @@ export function RealtimeAlertsComponent({
 
       {/* Alert Statistics */}
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-muted rounded-lg p-3 text-center">
-          <div className="text-2xl font-bold text-red-400">{stats.critical}</div>
-          <div className="text-xs text-muted-foreground">Critical</div>
-        </div>
-        <div className="bg-muted rounded-lg p-3 text-center">
-          <div className="text-2xl font-bold text-yellow-400">{stats.warning}</div>
-          <div className="text-xs text-muted-foreground">Warning</div>
-        </div>
-        <div className="bg-muted rounded-lg p-3 text-center">
-          <div className="text-2xl font-bold text-blue-400">{stats.info}</div>
-          <div className="text-xs text-muted-foreground">Info</div>
-        </div>
-        <div className="bg-muted rounded-lg p-3 text-center">
-          <div className="text-2xl font-bold text-green-400">
-            {alerts.filter(a => a.acknowledged).length}
+        <div className="bg-gradient-to-br from-red-500/10 to-red-600/10 border border-red-500/20 rounded-xl p-4 text-center hover:from-red-500/15 hover:to-red-600/15 transition-all duration-300">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+            <div className="text-2xl font-bold text-red-400">{stats.critical}</div>
           </div>
-          <div className="text-xs text-muted-foreground">Acked</div>
+          <div className="text-xs text-muted-foreground font-medium">Critical</div>
+        </div>
+        <div className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-xl p-4 text-center hover:from-yellow-500/15 hover:to-orange-500/15 transition-all duration-300">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+            <div className="text-2xl font-bold text-yellow-400">{stats.warning}</div>
+          </div>
+          <div className="text-xs text-muted-foreground font-medium">Warning</div>
+        </div>
+        <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-xl p-4 text-center hover:from-blue-500/15 hover:to-cyan-500/15 transition-all duration-300">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+            <div className="text-2xl font-bold text-blue-400">{stats.info}</div>
+          </div>
+          <div className="text-xs text-muted-foreground font-medium">Info</div>
+        </div>
+        <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl p-4 text-center hover:from-green-500/15 hover:to-emerald-500/15 transition-all duration-300">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+            <div className="text-2xl font-bold text-green-400">
+              {alerts.filter(a => a.acknowledged).length}
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground font-medium">Acked</div>
         </div>
       </div>
 
