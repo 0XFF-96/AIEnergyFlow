@@ -10,6 +10,14 @@ import SystemInitialization, { UserRole, MicrogridLocation } from '@/components/
 import { FloatingAIButton } from '@/components/FloatingAIButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
+// Import new chart components
+import { EnergyMixPieChart } from '@/charts/EnergyMixPieChart';
+import { LineGenerationChart } from '@/charts/LineGenerationChart';
+import { RealtimeAlertsComponent } from '@/charts/RealtimeAlertsComponent';
+import { CarbonIntensityPieChart } from '@/charts/CarbonIntensityPieChart';
+import { DemandStorageChart } from '@/charts/DemandStorageChart';
+import { EnergyAmountBarChart } from '@/charts/EnergyAmountBarChart';
+
 // Import microgrid locations for display
 const microgridLocations = [
   { value: 'north-perth', label: 'Microgrid North (Perth)', region: 'Northern Region' },
@@ -263,6 +271,73 @@ export default function Dashboard() {
   const dailyTotals = data?.dailyTotals || { consumption: 0, generation: 0, co2Saved: 0 };
   const systemStatus = data?.systemStatus || {};
 
+  // Generate mock data for new chart components
+  const generateMockEnergyMixData = () => [
+    { name: 'Solar', value: 45.2, color: '#facc15', intensity: 0 },
+    { name: 'Wind', value: 28.7, color: '#22c55e', intensity: 0 },
+    { name: 'Gas', value: 15.3, color: '#ef4444', intensity: 350 },
+    { name: 'Nuclear', value: 8.1, color: '#3b82f6', intensity: 12 },
+    { name: 'Hydro', value: 2.7, color: '#06b6d4', intensity: 0 }
+  ];
+
+  const generateMockGenerationData = () => {
+    const hours = Array.from({ length: 24 }, (_, i) => {
+      const hour = i;
+      const baseGeneration = 50 + Math.sin(hour * Math.PI / 12) * 30;
+      const solar = hour >= 6 && hour <= 18 ? baseGeneration * 0.6 : 0;
+      const wind = baseGeneration * 0.3 + Math.random() * 20;
+      const gas = Math.max(0, baseGeneration * 0.2 - solar - wind);
+      
+      return {
+        time: `${hour.toString().padStart(2, '0')}:00`,
+        generation: Math.round(baseGeneration),
+        solar: Math.round(solar),
+        wind: Math.round(wind),
+        gas: Math.round(gas),
+        nuclear: 15
+      };
+    });
+    return hours;
+  };
+
+  const generateMockCarbonIntensityData = () => [
+    { name: 'Very Low (0-50)', value: 35.2, color: '#22c55e', range: '0-50 gCO₂/kWh', impact: 'very-low' },
+    { name: 'Low (50-150)', value: 28.7, color: '#84cc16', range: '50-150 gCO₂/kWh', impact: 'low' },
+    { name: 'Moderate (150-300)', value: 20.1, color: '#eab308', range: '150-300 gCO₂/kWh', impact: 'moderate' },
+    { name: 'High (300-500)', value: 12.3, color: '#f97316', range: '300-500 gCO₂/kWh', impact: 'high' },
+    { name: 'Very High (500+)', value: 3.7, color: '#ef4444', range: '500+ gCO₂/kWh', impact: 'very-high' }
+  ];
+
+  const generateMockDemandStorageData = () => {
+    return Array.from({ length: 24 }, (_, i) => {
+      const hour = i;
+      const demand = 80 + Math.sin(hour * Math.PI / 12) * 40 + Math.random() * 20;
+      const storage = Math.max(10, 70 - hour * 2 + Math.random() * 10);
+      const generation = hour >= 6 && hour <= 18 ? demand * 0.8 : demand * 0.2;
+      
+      return {
+        time: `${hour.toString().padStart(2, '0')}:00`,
+        demand: Math.round(demand),
+        storage: Math.round(storage),
+        generation: Math.round(generation)
+      };
+    });
+  };
+
+  const generateMockEnergyAmountData = () => [
+    { source: 'Solar Panels', amount: 125.4, color: '#facc15', capacity: 200 },
+    { source: 'Wind Turbines', amount: 89.2, color: '#22c55e', capacity: 150 },
+    { source: 'Gas Generator', amount: 45.8, color: '#ef4444', capacity: 100 },
+    { source: 'Nuclear Plant', amount: 15.0, color: '#3b82f6', capacity: 20 },
+    { source: 'Hydro Dam', amount: 8.5, color: '#06b6d4', capacity: 15 }
+  ];
+
+  const mockEnergyMixData = generateMockEnergyMixData();
+  const mockGenerationData = generateMockGenerationData();
+  const mockCarbonIntensityData = generateMockCarbonIntensityData();
+  const mockDemandStorageData = generateMockDemandStorageData();
+  const mockEnergyAmountData = generateMockEnergyAmountData();
+
   const alertComponents = alerts.length > 0 ? (
     <div className="space-y-3">
       {alerts.map((alert) => (
@@ -413,6 +488,55 @@ export default function Dashboard() {
           height={400}
         />
 
+        {/* New Chart Components Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Energy Mix Pie Chart */}
+          <EnergyMixPieChart
+            data={mockEnergyMixData}
+            title="Current Energy Mix"
+            height={400}
+          />
+          
+          {/* Generation Line Chart */}
+          <LineGenerationChart
+            data={mockGenerationData}
+            title="Generation Over Time"
+            height={400}
+          />
+        </div>
+
+        {/* Second Row - Carbon Intensity and Demand Storage */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <CarbonIntensityPieChart
+            data={mockCarbonIntensityData}
+            title="Carbon Intensity Distribution"
+            totalEmissions={180}
+            height={400}
+          />
+          
+          <DemandStorageChart
+            data={mockDemandStorageData}
+            title="Demand vs Storage Balance"
+            height={400}
+          />
+        </div>
+
+        {/* Third Row - Energy Amount and Real-time Alerts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <EnergyAmountBarChart
+            data={mockEnergyAmountData}
+            title="Energy Production by Source"
+            height={400}
+          />
+          
+          <RealtimeAlertsComponent
+            alerts={processedAlerts}
+            title="Real-time System Alerts"
+            maxAlerts={5}
+            onAlertAction={handleAlertAction}
+          />
+        </div>
+
         {/* System Status */}
         <Card className="hover-elevate">
           <CardHeader>
@@ -481,6 +605,7 @@ export default function Dashboard() {
             </p>
           </div>
           
+          {/* Analytics KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card>
               <CardHeader>
@@ -512,24 +637,58 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Analytics Coming Soon</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Advanced analytics and reporting features will be available here, including:
-              </p>
-              <ul className="list-disc list-inside mt-4 space-y-2 text-sm text-muted-foreground">
-                <li>Energy consumption patterns and forecasting</li>
-                <li>Predictive maintenance recommendations</li>
-                <li>Cost optimization analysis</li>
-                <li>Carbon footprint tracking</li>
-                <li>Custom report generation</li>
-              </ul>
-            </CardContent>
-          </Card>
+
+          {/* Advanced Analytics Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Energy Mix Analysis */}
+            <EnergyMixPieChart
+              data={mockEnergyMixData}
+              title="Energy Mix Analysis"
+              height={350}
+            />
+            
+            {/* Carbon Intensity Analysis */}
+            <CarbonIntensityPieChart
+              data={mockCarbonIntensityData}
+              title="Environmental Impact Analysis"
+              totalEmissions={180}
+              height={350}
+            />
+          </div>
+
+          {/* Generation and Storage Analytics */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <LineGenerationChart
+              data={mockGenerationData}
+              title="Generation Pattern Analysis"
+              height={350}
+            />
+            
+            <DemandStorageChart
+              data={mockDemandStorageData}
+              title="Demand & Storage Analytics"
+              height={350}
+            />
+          </div>
+
+          {/* Production Analytics */}
+          <div className="grid grid-cols-1 gap-6">
+            <EnergyAmountBarChart
+              data={mockEnergyAmountData}
+              title="Energy Production Analytics"
+              height={400}
+            />
+          </div>
+
+          {/* Real-time Monitoring */}
+          <div className="grid grid-cols-1 gap-6">
+            <RealtimeAlertsComponent
+              alerts={processedAlerts}
+              title="System Monitoring & Alerts"
+              maxAlerts={8}
+              onAlertAction={handleAlertAction}
+            />
+          </div>
         </TabsContent>
       </Tabs>
       </DashboardLayout>

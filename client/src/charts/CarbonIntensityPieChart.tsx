@@ -56,7 +56,7 @@ export function CarbonIntensityPieChart({
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 shadow-lg">
+        <div className="bg-popover border border-popover-border rounded-lg p-3 shadow-lg">
           <p className="text-white font-semibold">{data.name}</p>
           <p className="text-blue-300">{`Share: ${data.value.toFixed(1)}%`}</p>
           <p className="text-gray-300 text-sm">{`Range: ${data.range}`}</p>
@@ -82,19 +82,19 @@ export function CarbonIntensityPieChart({
         {payload.map((entry: any, index: number) => {
           const item = data.find(d => d.name === entry.value);
           return (
-            <div key={index} className="flex items-center justify-between bg-slate-800/30 rounded-lg p-2">
+            <div key={index} className="flex items-center justify-between bg-muted/50 rounded-lg p-2">
               <div className="flex items-center gap-2">
                 <div 
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: entry.color }}
                 />
-                <span className="text-slate-300 text-sm">{entry.value}</span>
+                <span className="text-muted-foreground text-sm">{entry.value}</span>
               </div>
               <div className="text-right">
-                <span className="text-white text-sm font-medium">
+                <span className="text-foreground text-sm font-medium">
                   {item?.value.toFixed(1)}%
                 </span>
-                <p className="text-slate-400 text-xs">{item?.range}</p>
+                <p className="text-muted-foreground text-xs">{item?.range}</p>
               </div>
             </div>
           );
@@ -104,25 +104,25 @@ export function CarbonIntensityPieChart({
   };
 
   return (
-    <div className="w-full bg-slate-900/50 border border-slate-700 rounded-2xl p-6">
+    <div className="w-full bg-card border border-card-border rounded-2xl p-6">
       {title && (
         <div className="text-center mb-4">
           <h3 className="text-xl font-semibold text-white mb-2 flex items-center justify-center gap-2">
             <Leaf className="h-5 w-5 text-green-400" />
             {title}
           </h3>
-          <p className="text-slate-400 text-sm">Environmental impact breakdown</p>
+          <p className="text-muted-foreground text-sm">Environmental impact breakdown</p>
         </div>
       )}
 
       {/* Current Carbon Intensity Display */}
       {showImpactIndicator && (
-        <div className="bg-slate-800/50 rounded-xl p-4 mb-6">
+        <div className="bg-muted rounded-xl p-4 mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-slate-400 text-sm">Current Carbon Intensity</p>
-              <p className="text-3xl font-bold text-white">{totalEmissions}</p>
-              <p className="text-slate-400 text-sm">gCO₂/kWh</p>
+              <p className="text-muted-foreground text-sm">Current Carbon Intensity</p>
+              <p className="text-3xl font-bold text-foreground">{totalEmissions}</p>
+              <p className="text-muted-foreground text-sm">gCO₂/kWh</p>
             </div>
             <div className="text-right">
               <div className={`text-2xl ${impactInfo.color} font-bold`}>
