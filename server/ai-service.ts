@@ -3,8 +3,10 @@ import { type EnergyMetric, type InsertAnomaly } from "@shared/schema";
 
 // Using OpenAI integration for AI-powered anomaly detection
 // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+  
 interface AnomalyAnalysisResult {
   isAnomaly: boolean;
   score: number; // 0-1 confidence score

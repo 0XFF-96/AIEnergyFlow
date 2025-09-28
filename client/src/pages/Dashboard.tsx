@@ -1,679 +1,599 @@
-import { DashboardLayout } from '@/components/DashboardLayout';
-import { EnergyKPICard } from '@/components/EnergyKPICard';
-import { EnergyChart } from '@/components/EnergyChart';
-import { AlertBanner } from '@/components/AlertBanner';
-import { AlertDashboard } from '@/components/AlertDashboard';
-import { AlertSystemIntegration } from '@/components/AlertSystemIntegration';
-import { AlertNotificationSystem } from '@/components/AlertNotificationSystem';
-import { AlertConfig } from '@/components/AlertConfig';
-import SystemInitialization, { UserRole, MicrogridLocation } from '@/components/SystemInitialization';
-import { FloatingAIButton } from '@/components/FloatingAIButton';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-
-// Import microgrid locations for display
-const microgridLocations = [
-  { value: 'north-perth', label: 'Microgrid North (Perth)', region: 'Northern Region' },
-  { value: 'south-bunbury', label: 'Microgrid South (Bunbury)', region: 'Southern Region' },
-  { value: 'east-kalgoorlie', label: 'Microgrid East (Kalgoorlie)', region: 'Eastern Region' },
-  { value: 'west-geraldton', label: 'Microgrid West (Geraldton)', region: 'Western Region' },
-];
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Battery, Zap, Home, Sun, Wind, TrendingUp, AlertTriangle, CheckCircle, RefreshCw, Bell, Activity, Settings, RotateCcw } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useToast } from '@/hooks/use-toast';
+import { 
+  Users, 
+  Wrench, 
+  Zap, 
+  Home, 
+  Sun, 
+  Wind, 
+  Factory, 
+  AlertTriangle,
+  TrendingUp,
+  Battery,
+  Leaf,
+  Activity,
+  RefreshCw
+} from 'lucide-react';
 
-interface DashboardData {
-  current: any;
-  alerts: any[];
-  anomalies: any[];
-  dailyTotals: {
-    consumption: number;
-    generation: number;
-    co2Saved: number;
-  };
-  chartData: any[];
-  systemStatus: {
-    solarPanels: string;
-    battery: string;
-    gridConnection: string;
-    aiMonitoring: string;
-  };
-}
+// Import our custom chart components
+import { LineGenerationChart } from '../components/charts/LineGenerationChart';
+import { DemandStorageChart } from '../components/charts/DemandStorageChart';
+import { EnergyMixPieChart } from '../components/charts/EnergyMixPieChart';
+import { EnergyAmountBarChart } from '../components/charts/EnergyAmountBarChart';
+import { CarbonIntensityPieChart } from '../components/charts/CarbonIntensityPieChart';
+import { RealtimeAlertsComponent } from '../components/charts/RealtimeAlertsComponent';
 
-export default function Dashboard() {
+// Mock data generators
+const generateRealtimeData = () => {
+  const now = new Date();
+  const data = [];
+  for (let i = 23; i >= 0; i--) {
+    const time = new Date(now.getTime() - i * 60 * 60 * 1000);
+    const hour = time.getHours();
+    
+    // Simulate realistic patterns
+    const solarMultiplier = hour >= 6 && hour <= 18 ? Math.sin((hour - 6) * Math.PI / 12) : 0;
+    const demandMultiplier = hour >= 7 && hour <= 22 ? 1.2 : 0.8;
+    
+    data.push({
+      time: time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      generation: Math.round(2500 + Math.sin(i * 0.3) * 800 + Math.random() * 300),
+      demand: Math.round(2800 * demandMultiplier + Math.random() * 200),
+      storage: Math.round(60 + Math.sin(i * 0.2) * 20 + Math.random() * 10),
+      solar: Math.round(800 * solarMultiplier + Math.random() * 100),
+      wind: Math.round(900 + Math.random() * 400),
+      gas: Math.round(600 + Math.random() * 300),
+      nuclear: Math.round(400 + Math.random() * 100),
+      coal: Math.round(Math.max(0, 200 + Math.random() * 150))
+    });
+  }
+  return data;
+};
+
+const energyMixData = [
+  { name: "Gas", value: 38.5, color: "#ef4444", intensity: 490 },
+  { name: "Wind", value: 28.2, color: "#22c55e", intensity: 0 },
+  { name: "Solar", value: 15.8, color: "#facc15", intensity: 0 },
+  { name: "Nuclear", value: 12.1, color: "#3b82f6", intensity: 12 },
+  { name: "Coal", value: 3.8, color: "#64748b", intensity: 820 },
+  { name: "Hydro", value: 1.6, color: "#06b6d4", intensity: 24 }
+];
+
+const carbonIntensityData = [
+  { 
+    name: "Gas", 
+    value: 45.6, 
+    color: "#22c55e", 
+    range: "0-50 gCO₂/kWh",
+    impact: 'very-low' as const
+  },
+  { 
+    name: "Wind", 
+    value: 15.8, 
+    color: "#84cc16", 
+    range: "51-150 gCO₂/kWh",
+    impact: 'low' as const
+  },
+  { 
+    name: "Solar", 
+    value: 12.1, 
+    color: "#facc15", 
+    range: "151-300 gCO₂/kWh",
+    impact: 'moderate' as const
+  },
+  { 
+    name: "Coal", 
+    value: 20.7, 
+    color: "#f97316", 
+    range: "301-500 gCO₂/kWh",
+    impact: 'high' as const
+  },
+  { 
+    name: "Nuclear", 
+    value: 5.8, 
+    color: "#ef4444", 
+    range: "500+ gCO₂/kWh",
+    impact: 'very-high' as const
+  }
+];
+
+const generateAlerts = () => [
+  { 
+    id: '1', 
+    type: 'warning' as const, 
+    title: 'High Demand Detected',
+    message: 'Unusual demand spike detected in Northern Grid - monitoring situation', 
+    timestamp: new Date(Date.now() - 2 * 60 * 1000),
+    severity: 'medium' as const,
+    source: 'Grid Monitor',
+    acknowledged: false
+  },
+  { 
+    id: '2', 
+    type: 'info' as const, 
+    title: 'Solar Peak Generation',
+    message: 'Solar generation peaked at 2.1 GW - excellent conditions', 
+    timestamp: new Date(Date.now() - 5 * 60 * 1000),
+    severity: 'low' as const,
+    source: 'Solar System',
+    acknowledged: true
+  },
+  { 
+    id: '3', 
+    type: 'critical' as const, 
+    title: 'Grid Frequency Deviation',
+    message: 'Grid frequency deviation detected - automatic systems engaged', 
+    timestamp: new Date(Date.now() - 8 * 60 * 1000),
+    severity: 'high' as const,
+    source: 'Frequency Monitor',
+    acknowledged: false
+  },
+  { 
+    id: '4', 
+    type: 'warning' as const, 
+    title: 'Battery Storage Low',
+    message: 'Battery storage level below 25% - consider load balancing', 
+    timestamp: new Date(Date.now() - 12 * 60 * 1000),
+    severity: 'medium' as const,
+    source: 'Storage System',
+    acknowledged: false
+  }
+];
+
+export default function CompleteEnergyDashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [showRoleSelection, setShowRoleSelection] = useState(true);
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [microgridLocation, setMicrogridLocation] = useState<MicrogridLocation | null>(null);
-  const [showAlertCenter, setShowAlertCenter] = useState(false);
-  const [showSystemSettings, setShowSystemSettings] = useState(false);
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const [realtimeData, setRealtimeData] = useState(generateRealtimeData());
+  const [currentView, setCurrentView] = useState('operator');
+  const [alerts, setAlerts] = useState(generateAlerts());
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+      setRealtimeData(generateRealtimeData());
+    }, 30000); // Update every 30 seconds
+
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch dashboard data
-  const { data: dashboardData, isLoading, error } = useQuery({
-    queryKey: ['/api/dashboard/summary'],
-    refetchInterval: 30000, // Refresh every 30 seconds
-    enabled: isInitialized,
-  });
+  // Calculate current metrics
+  const currentData = realtimeData[realtimeData.length - 1] || {};
+  const currentGeneration = currentData.generation || 0;
+  const currentDemand = currentData.demand || 0;
+  const currentStorage = currentData.storage || 0;
+  const carbonIntensity = Math.round(
+    energyMixData.reduce((acc, item) => acc + (item.value / 100) * item.intensity, 0)
+  );
 
-  // Handle role and location selection
-  const handleSystemInitialize = async (role: UserRole, location: MicrogridLocation) => {
-    setUserRole(role);
-    setMicrogridLocation(location);
-    
-    // Initialize system with user preferences
-    const response = await fetch('/api/system/initialize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userRole: role,
-        microgridLocation: location,
-      }),
-    });
-    
-    if (!response.ok) throw new Error('Failed to initialize system');
-    
-    const result = await response.json();
-    setIsInitialized(true);
-    setShowRoleSelection(false);
-    queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
-    
-    toast({
-      title: "System Initialized",
-      description: `Welcome ${role === 'community' ? 'Community Member' : 'System Operator'}! ${location} microgrid is now active.`,
-    });
-    
-    return result;
+  const energyAmountData = energyMixData.map(item => ({
+    source: item.name,
+    amount: Math.round((item.value / 100) * currentGeneration) || 0, // 添加默认值防止NaN
+    color: item.color
+  }));
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setRealtimeData(generateRealtimeData());
+    setIsRefreshing(false);
   };
 
-  // Initialize system mutation
-  const initializeMutation = useMutation({
-    mutationFn: ({ role, location }: { role: UserRole; location: MicrogridLocation }) => 
-      handleSystemInitialize(role, location),
-    onError: (error) => {
-      toast({
-        title: "Initialization Failed",
-        description: "Failed to initialize the energy management system.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Simulate new data mutation
-  const simulateMutation = useMutation({
-    mutationFn: async (type: 'normal' | 'anomaly') => {
-      const response = await fetch('/api/energy/simulate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, anomalyType: 'consumption_spike' }),
-      });
-      if (!response.ok) throw new Error('Failed to simulate data');
-      return response.json();
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
-      if (data.anomalyDetected) {
-        toast({
-          title: "Anomaly Detected",
-          description: `AI detected an anomaly with score ${data.anomalyScore.toFixed(2)}`,
-          variant: "destructive",
-        });
+  const handleAlertAction = (alertId: string, action: 'acknowledge' | 'dismiss' | 'resolve') => {
+    setAlerts(prevAlerts => {
+      if (action === 'dismiss' || action === 'resolve') {
+        return prevAlerts.filter(alert => alert.id !== alertId);
+      } else if (action === 'acknowledge') {
+        return prevAlerts.map(alert => 
+          alert.id === alertId ? { ...alert, acknowledged: true } : alert
+        );
       }
-    },
-  });
-
-  // Dismiss alert mutation
-  const dismissAlertMutation = useMutation({
-    mutationFn: async (alertId: string) => {
-      const response = await fetch(`/api/alerts/${alertId}/dismiss`, {
-        method: 'POST',
-      });
-      if (!response.ok) throw new Error('Failed to dismiss alert');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
-    },
-  });
-
-  // AI insights query
-  const { data: aiInsights } = useQuery({
-    queryKey: ['/api/ai/insights'],
-    enabled: isInitialized,
-    refetchInterval: 300000, // Refresh every 5 minutes
-  });
-
-  // Memoize processed alerts to prevent unnecessary re-renders
-  const processedAlerts = useMemo(() => {
-    const alerts = (dashboardData as DashboardData)?.alerts || [];
-    return alerts.map((alert: any) => ({
-      ...alert,
-      severity: alert.type === 'critical' ? 'critical' : alert.type === 'warning' ? 'warning' : 'info',
-      timestamp: new Date(alert.timestamp)
-    }));
-  }, [(dashboardData as DashboardData)?.alerts]);
-
-  const handleAlertDismiss = (alertId: string) => {
-    dismissAlertMutation.mutate(alertId);
-  };
-
-  const handleAlertAction = (alertId: string, action: string, notes?: string) => {
-    console.log(`Alert ${alertId}: ${action} action triggered`, { notes });
-    
-    switch (action) {
-      case 'acknowledge':
-        toast({
-          title: "Alert Acknowledged",
-          description: `Alert ${alertId} has been acknowledged.`,
-        });
-        break;
-      case 'resolve':
-        toast({
-          title: "Alert Resolved",
-          description: `Alert ${alertId} has been marked as resolved.`,
-        });
-        break;
-      case 'dismiss':
-        dismissAlertMutation.mutate(alertId);
-        break;
-      case 'add_notes':
-        toast({
-          title: "Notes Added",
-          description: `Notes added to alert ${alertId}.`,
-        });
-        break;
-      default:
-        toast({
-          title: "Action Triggered",
-          description: `${action} action triggered for alert ${alertId}.`,
-        });
-    }
-    
-    // Refresh alerts after action
-    queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
-  };
-
-  const handleAlertConfigSave = (config: any) => {
-    console.log('Saving alert configuration:', config);
-    
-    // In a real implementation, this would save to the backend
-    localStorage.setItem('alertConfig', JSON.stringify(config));
-    
-    toast({
-      title: "Configuration Saved",
-      description: "Alert configuration has been saved successfully.",
+      return prevAlerts;
     });
   };
 
-  // Show role selection screen if not initialized
-  if (!isInitialized || showRoleSelection) {
-    return (
-      <SystemInitialization
-        onInitialize={(role, location) => initializeMutation.mutate({ role, location })}
-        isInitializing={initializeMutation.isPending}
-      />
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh] px-4">
-          <div className="text-center space-y-4">
-            <RefreshCw className="h-8 w-8 animate-spin mx-auto text-primary" />
-            <p className="text-muted-foreground">Loading energy data...</p>
+  const OperatorView = () => (
+    <div className="space-y-6">
+      {/* Operator Header */}
+      <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-6 text-white border border-slate-700">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-3">
+              <Wrench className="h-8 w-8 text-blue-400" />
+              Operator Control Center
+            </h1>
+            <p className="text-slate-300 mt-2">Real-time grid monitoring and control interface</p>
           </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  if (error) {
-    return (
-      <DashboardLayout>
-        <div className="px-4">
-          <Card className="border-red-500/50 bg-red-500/10">
-            <CardContent className="pt-6">
-              <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2 text-red-300">
-                <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-                <span className="text-center sm:text-left">Failed to load dashboard data. Please refresh the page.</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  const data: DashboardData = dashboardData as DashboardData;
-  const current = data?.current;
-  const alerts = data?.alerts || [];
-  const chartData = data?.chartData || [];
-  const dailyTotals = data?.dailyTotals || { consumption: 0, generation: 0, co2Saved: 0 };
-  const systemStatus = data?.systemStatus || {};
-
-  const alertComponents = alerts.length > 0 ? (
-    <div className="space-y-3">
-      {alerts.map((alert) => (
-        <AlertBanner
-          key={alert.id}
-          type={alert.type}
-          title={alert.title}
-          description={alert.description}
-          timestamp={new Date(alert.timestamp).toLocaleString()}
-          onDismiss={() => handleAlertDismiss(alert.id)}
-          actionLabel="Investigate"
-          onAction={() => handleAlertAction(alert.id, 'investigate')}
-        />
-      ))}
-    </div>
-  ) : null;
-
-  return (
-    <>
-      <DashboardLayout 
-        alerts={alertComponents}
-        alertCount={alerts.length}
-        onAlertCenterClick={() => setShowAlertCenter(true)}
-        onSystemClick={() => setShowSystemSettings(true)}
-        userRole={userRole || undefined}
-        microgridLocation={microgridLocation || undefined}
-      >
-        <AlertNotificationSystem 
-          alerts={processedAlerts}
-          onAlertAction={handleAlertDismiss}
-        />
-      
-      <Tabs defaultValue="overview" className="space-y-8">
-        <TabsList className="grid w-full h-12 grid-cols-2">
-          <TabsTrigger value="overview" className="flex items-center justify-center space-x-2 py-3">
-            <Activity className="h-4 w-4" />
-            <span className="text-sm font-medium">Energy Overview</span>
-          </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center justify-center space-x-2 py-3">
-            <TrendingUp className="h-4 w-4" />
-            <span className="text-sm font-medium">Analytics</span>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-8">
-          {/* Real-time Status Header */}
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-            <div className="flex-1 text-center lg:text-left">
-              <h2 className="text-2xl lg:text-3xl font-bold tracking-tight leading-tight">Energy Dashboard</h2>
-              <p className="text-muted-foreground mt-2 text-sm lg:text-base">
-                Real-time monitoring and AI-powered anomaly detection
-              </p>
-              {(userRole || microgridLocation) && (
-                <div className="flex flex-wrap items-center gap-2 mt-3">
-                  {userRole && (
-                    <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/30">
-                      {userRole === 'community' ? 'Community Member' : 'System Operator'}
-                    </Badge>
-                  )}
-                  {microgridLocation && (
-                    <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/30">
-                      {microgridLocations.find(l => l.value === microgridLocation)?.label || 'Microgrid'}
-                    </Badge>
-                  )}
-                </div>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            >
+              {isRefreshing ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
               )}
-            </div>
-            <div className="flex flex-col sm:flex-row items-center gap-4 lg:items-end">
-              <div className="text-center sm:text-right">
-                <div className="text-xs text-muted-foreground font-medium">Last Update</div>
-                <div className="font-mono text-base lg:text-lg mt-1">{currentTime.toLocaleTimeString()}</div>
-              </div>
-              {userRole === 'operator' && (
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => simulateMutation.mutate('normal')}
-                    disabled={simulateMutation.isPending}
-                    data-testid="button-simulate-data"
-                    className="w-full sm:w-auto min-w-[120px]"
-                  >
-                    {simulateMutation.isPending ? (
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                    )}
-                    <span className="hidden sm:inline">Simulate Data</span>
-                    <span className="sm:hidden">Simulate</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => simulateMutation.mutate('anomaly')}
-                    disabled={simulateMutation.isPending}
-                    data-testid="button-simulate-anomaly"
-                    className="w-full sm:w-auto min-w-[120px]"
-                  >
-                    <AlertTriangle className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Test Anomaly</span>
-                    <span className="sm:hidden">Test</span>
-                  </Button>
-                </div>
-              )}
+              Refresh
+            </Button>
+            <div className="text-right">
+              <div className="text-sm text-slate-400">System Time</div>
+              <div className="text-xl font-mono">{currentTime.toLocaleTimeString()}</div>
             </div>
           </div>
-
-        {/* KPI Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <EnergyKPICard
-            title="Total Consumption"
-            value={current?.consumption?.toFixed(1) || '0.0'}
-            unit="kW"
-            trend={{ value: 12, direction: "up" }}
-            status={current?.consumption > 200 ? "warning" : "normal"}
-            icon={<Home className="h-4 w-4" />}
-          />
-          <EnergyKPICard
-            title="Solar Generation"
-            value={current?.generation?.toFixed(1) || '0.0'}
-            unit="kW"
-            trend={{ value: 8, direction: "up" }}
-            status={current?.solarEfficiency < 75 ? "warning" : "normal"}
-            icon={<Sun className="h-4 w-4" />}
-          />
-          <EnergyKPICard
-            title="Battery Storage"
-            value={current?.storage?.toFixed(1) || '0.0'}
-            unit="%"
-            trend={{ value: 5, direction: current?.storage > 50 ? "up" : "down" }}
-            status={current?.storage < 20 ? "critical" : current?.storage < 40 ? "warning" : "normal"}
-            icon={<Battery className="h-4 w-4" />}
-          />
-          <EnergyKPICard
-            title="Grid Export"
-            value={current?.gridExport?.toFixed(1) || '0.0'}
-            unit="kW"
-            trend={{ value: 15, direction: "up" }}
-            status="normal"
-            icon={<Zap className="h-4 w-4" />}
-          />
         </div>
+      </div>
 
-        {/* Main Chart */}
-        <EnergyChart
-          title="24-Hour Energy Overview"
-          data={chartData}
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 border-blue-500/30">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Total Generation</p>
+                <p className="text-3xl font-bold text-blue-400">{currentGeneration.toFixed(0)}</p>
+                <p className="text-sm text-slate-400">MW</p>
+              </div>
+              <Zap className="h-12 w-12 text-blue-400/70" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-orange-500/20 to-orange-600/10 border-orange-500/30">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Current Demand</p>
+                <p className="text-3xl font-bold text-orange-400">{currentDemand.toFixed(0)}</p>
+                <p className="text-sm text-slate-400">MW</p>
+              </div>
+              <Home className="h-12 w-12 text-orange-400/70" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-green-500/20 to-green-600/10 border-green-500/30">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Storage Level</p>
+                <p className="text-3xl font-bold text-green-400">{currentStorage.toFixed(1)}</p>
+                <p className="text-sm text-slate-400">%</p>
+              </div>
+              <Battery className="h-12 w-12 text-green-400/70" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 border-purple-500/30">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Carbon Intensity</p>
+                <p className="text-3xl font-bold text-purple-400">{carbonIntensity}</p>
+                <p className="text-sm text-slate-400">gCO₂/kWh</p>
+              </div>
+              <Leaf className="h-12 w-12 text-purple-400/70" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Charts Row 1 */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <LineGenerationChart
+          data={realtimeData}
+          title="Generation Over Time (24h)"
+          height={350}
+        />
+        
+        <DemandStorageChart
+          data={realtimeData}
+          title="Demand vs Storage Balance"
+          height={350}
+        />
+      </div>
+
+      {/* Main Charts Row 2 */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <EnergyMixPieChart
+          data={energyMixData}
+          title="Current Energy Mix"
           height={400}
         />
+        
+        <EnergyAmountBarChart
+          data={energyAmountData}
+          title="Generation by Source"
+          height={600}
+          layout="horizontal"
+        />
+      </div>
 
-        {/* System Status */}
-        <Card className="hover-elevate">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <CheckCircle className="h-5 w-5 text-primary" />
-              <span>System Status</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Solar Panels</span>
-                <Badge className={systemStatus.solarPanels === 'online' ? 'bg-primary/20 text-primary border-primary/30' : 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'}>
-                  {systemStatus.solarPanels === 'online' ? 'Online' : 'Degraded'}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Battery System</span>
-                <Badge className={systemStatus.battery === 'normal' ? 'bg-primary/20 text-primary border-primary/30' : 'bg-red-500/20 text-red-300 border-red-500/30'}>
-                  {systemStatus.battery === 'normal' ? 'Normal' : 'Low'}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Grid Connection</span>
-                <Badge className="bg-primary/20 text-primary border-primary/30">Stable</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">AI Monitoring</span>
-                <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">Active</Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Energy Efficiency Report */}
-        <Card className="hover-elevate">
-          <CardHeader>
-            <CardTitle className="text-center lg:text-left">Daily Energy Report</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <div className="text-center">
-                <div className="text-2xl lg:text-3xl font-bold text-primary">{dailyTotals.consumption} kWh</div>
-                <div className="text-sm text-muted-foreground">Total Consumption</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl lg:text-3xl font-bold text-primary">{dailyTotals.generation} kWh</div>
-                <div className="text-sm text-muted-foreground">Solar Generated</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl lg:text-3xl font-bold text-primary">{dailyTotals.co2Saved} kg</div>
-                <div className="text-sm text-muted-foreground">CO₂ Saved</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        </TabsContent>
-
-
-
-        <TabsContent value="analytics" className="space-y-8">
-          <div className="text-center lg:text-left">
-            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight leading-tight">Analytics & Reports</h2>
-            <p className="text-muted-foreground mt-2 text-sm lg:text-base">
-              Deep insights into energy patterns and system performance
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium">Energy Efficiency Trend</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-primary">94.7%</div>
-                <p className="text-xs text-muted-foreground">+2.1% from last month</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium">Alert Response Time</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-primary">15 min</div>
-                <p className="text-xs text-muted-foreground">-5 min from last week</p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium">System Uptime</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-primary">99.8%</div>
-                <p className="text-xs text-muted-foreground">Excellent performance</p>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Analytics Coming Soon</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Advanced analytics and reporting features will be available here, including:
-              </p>
-              <ul className="list-disc list-inside mt-4 space-y-2 text-sm text-muted-foreground">
-                <li>Energy consumption patterns and forecasting</li>
-                <li>Predictive maintenance recommendations</li>
-                <li>Cost optimization analysis</li>
-                <li>Carbon footprint tracking</li>
-                <li>Custom report generation</li>
-              </ul>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-      </DashboardLayout>
-
-      {/* Alert Center Modal */}
-      <Dialog open={showAlertCenter} onOpenChange={setShowAlertCenter}>
-        <DialogContent className="max-w-7xl w-[95vw] max-h-[90vh] p-0 overflow-hidden flex flex-col">
-          <DialogHeader className="p-6 pb-4 border-b border-border/40 bg-background/95 backdrop-blur">
-            <DialogTitle className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Bell className="h-6 w-6 text-primary" />
-                <span className="text-xl font-semibold">Alert Center</span>
-                {alerts.length > 0 && (
-                  <Badge variant="destructive" className="ml-2">
-                    {alerts.length} Active Alerts
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <Activity className="h-4 w-4" />
-                <span>Real-time Monitoring</span>
-              </div>
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="flex-1 overflow-y-auto p-6 bg-background/50">
-            <div className="max-w-none">
-              <AlertSystemIntegration
-                alerts={processedAlerts}
-                onAlertAction={handleAlertAction}
-              />
-            </div>
-          </div>
-          
-          {/* Footer with quick actions */}
-          <div className="p-4 border-t border-border/40 bg-background/95 backdrop-blur">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                Last updated: {currentTime.toLocaleTimeString()}
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    // Refresh alerts
-                    queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
-                  }}
-                  className="flex items-center space-x-2"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  <span>Refresh</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowAlertCenter(false)}
-                  className="flex items-center space-x-2"
-                >
-                  <span>Close</span>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* System Settings Modal */}
-      <Dialog open={showSystemSettings} onOpenChange={setShowSystemSettings}>
-        <DialogContent className="max-w-6xl w-[95vw] max-h-[90vh] p-0 overflow-hidden flex flex-col">
-          <DialogHeader className="p-6 pb-4 border-b border-border/40 bg-background/95 backdrop-blur">
-            <DialogTitle className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Settings className="h-6 w-6 text-primary" />
-                <span className="text-xl font-semibold">System Settings</span>
-              </div>
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <span>Configure system parameters and alert rules</span>
-              </div>
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="flex-1 overflow-y-auto p-6 bg-background/50">
-            <div className="max-w-none">
-              {userRole === 'operator' ? (
-                <AlertConfig onSave={handleAlertConfigSave} />
-              ) : (
-                <div className="text-center py-12">
-                  <Settings className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <h3 className="text-lg font-semibold mb-2">Access Restricted</h3>
-                  <p className="text-muted-foreground mb-4">
-                    System settings are only available to operators.
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Contact your system administrator for configuration changes.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {/* Footer with quick actions */}
-          <div className="p-4 border-t border-border/40 bg-background/95 backdrop-blur">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                Settings saved automatically
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    // Reset to defaults
-                    toast({
-                      title: "Settings Reset",
-                      description: "Settings have been reset to defaults.",
-                    });
-                  }}
-                  className="flex items-center space-x-2"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  <span>Reset</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowSystemSettings(false)}
-                  className="flex items-center space-x-2"
-                >
-                  <span>Close</span>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Floating AI Insights Button */}
-      <FloatingAIButton 
+      {/* Real-time Alerts */}
+      <RealtimeAlertsComponent
         alerts={alerts}
-        onRefresh={() => {
-          queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] });
-        }}
+        title="Real-time System Alerts"
+        maxAlerts={5}
+        onAlertAction={handleAlertAction}
+        autoRefresh={true}
       />
-    </>
+    </div>
+  );
+
+  const CommunityView = () => (
+    <div className="space-y-6">
+      {/* Community Header */}
+      <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl p-6 text-white border border-green-500/30">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-3">
+              <Users className="h-8 w-8" />
+              Community Energy Dashboard
+            </h1>
+            <p className="text-green-100 mt-2">Track our collective progress towards sustainable energy</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="border-green-400/30 text-green-100 hover:bg-green-500/20"
+            >
+              {isRefreshing ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              Refresh
+            </Button>
+            <div className="text-right">
+              <div className="text-sm text-green-200">Live Data</div>
+              <div className="text-xl font-mono">{currentTime.toLocaleTimeString()}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Community Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="bg-gradient-to-br from-green-500/20 to-emerald-600/10 border-green-500/30">
+          <CardContent className="p-6 text-center">
+            <Leaf className="h-16 w-16 text-green-400 mx-auto mb-4" />
+            <p className="text-sm text-slate-400 mb-2">Clean Energy Share</p>
+            <p className="text-4xl font-bold text-green-400 mb-1">
+              {(energyMixData.filter(item => ['Wind', 'Solar', 'Hydro', 'Nuclear'].includes(item.name))
+                .reduce((acc, item) => acc + item.value, 0)).toFixed(1)}%
+            </p>
+            <p className="text-sm text-green-300">+2.3% from last month</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-blue-500/20 to-cyan-600/10 border-blue-500/30">
+          <CardContent className="p-6 text-center">
+            <Factory className="h-16 w-16 text-blue-400 mx-auto mb-4" />
+            <p className="text-sm text-slate-400 mb-2">Carbon Intensity</p>
+            <p className="text-4xl font-bold text-blue-400 mb-1">{carbonIntensity}</p>
+            <p className="text-sm text-blue-300">gCO₂ per kWh</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-500/20 to-indigo-600/10 border-purple-500/30">
+          <CardContent className="p-6 text-center">
+            <Sun className="h-16 w-16 text-purple-400 mx-auto mb-4" />
+            <p className="text-sm text-slate-400 mb-2">Renewable Generation</p>
+            <p className="text-4xl font-bold text-purple-400 mb-1">
+              {Math.round(currentGeneration * 0.456)}
+            </p>
+            <p className="text-sm text-purple-300">MW right now</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Community Charts */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <EnergyMixPieChart
+          data={energyMixData}
+          title="Current Energy Mix"
+          height={450}
+          showLabels={true}
+          showLegend={true}
+        />
+        
+        <CarbonIntensityPieChart
+          data={carbonIntensityData}
+          title="Carbon Intensity Distribution"
+          height={450}
+          totalEmissions={carbonIntensity}
+          showImpactIndicator={true}
+        />
+      </div>
+
+      {/* Renewable Energy Breakdown */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-emerald-500/10 to-green-600/10 border-emerald-500/20">
+          <CardContent className="p-4 text-center">
+            <Wind className="h-8 w-8 text-emerald-400 mx-auto mb-2" />
+            <p className="text-sm text-slate-400">Wind Power</p>
+            <p className="text-xl font-bold text-emerald-400">{energyMixData[1].value}%</p>
+            <p className="text-xs text-emerald-300">
+              {Math.round((energyMixData[1].value / 100) * currentGeneration)} MW
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-yellow-500/10 to-orange-600/10 border-yellow-500/20">
+          <CardContent className="p-4 text-center">
+            <Sun className="h-8 w-8 text-yellow-400 mx-auto mb-2" />
+            <p className="text-sm text-slate-400">Solar Power</p>
+            <p className="text-xl font-bold text-yellow-400">{energyMixData[2].value}%</p>
+            <p className="text-xs text-yellow-300">
+              {Math.round((energyMixData[2].value / 100) * currentGeneration)} MW
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-blue-500/10 to-cyan-600/10 border-blue-500/20">
+          <CardContent className="p-4 text-center">
+            <Zap className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+            <p className="text-sm text-slate-400">Nuclear</p>
+            <p className="text-xl font-bold text-blue-400">{energyMixData[3].value}%</p>
+            <p className="text-xs text-blue-300">
+              {Math.round((energyMixData[3].value / 100) * currentGeneration)} MW
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-cyan-500/10 to-blue-600/10 border-cyan-500/20">
+          <CardContent className="p-4 text-center">
+            <Battery className="h-8 w-8 text-cyan-400 mx-auto mb-2" />
+            <p className="text-sm text-slate-400">Hydro</p>
+            <p className="text-xl font-bold text-cyan-400">{energyMixData[5].value}%</p>
+            <p className="text-xs text-cyan-300">
+              {Math.round((energyMixData[5].value / 100) * currentGeneration)} MW
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Environmental Impact Summary */}
+      <Card className="bg-gradient-to-r from-green-900/50 to-emerald-900/50 border-green-500/30">
+        <CardHeader>
+          <CardTitle className="text-white text-center text-2xl">
+            Today's Environmental Impact
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+            <div className="bg-green-500/10 rounded-lg p-4">
+              <Leaf className="h-12 w-12 text-green-400 mx-auto mb-3" />
+              <p className="text-3xl font-bold text-green-400">2.4 tons</p>
+              <p className="text-sm text-slate-300">CO₂ emissions saved</p>
+              <p className="text-xs text-green-400 mt-1">vs fossil fuel baseline</p>
+            </div>
+            <div className="bg-yellow-500/10 rounded-lg p-4">
+              <Sun className="h-12 w-12 text-yellow-400 mx-auto mb-3" />
+              <p className="text-3xl font-bold text-yellow-400">1,200</p>
+              <p className="text-sm text-slate-300">homes powered by renewables</p>
+              <p className="text-xs text-yellow-400 mt-1">equivalent households</p>
+            </div>
+            <div className="bg-blue-500/10 rounded-lg p-4">
+              <Wind className="h-12 w-12 text-blue-400 mx-auto mb-3" />
+              <p className="text-3xl font-bold text-blue-400">
+                {((currentGeneration - currentDemand) / currentGeneration * 100).toFixed(1)}%
+              </p>
+              <p className="text-sm text-slate-300">grid efficiency today</p>
+              <p className="text-xs text-blue-400 mt-1">
+                {currentGeneration > currentDemand ? 'surplus generation' : 'balanced load'}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Community Goals Progress */}
+      <Card className="bg-slate-900/50 border-slate-700">
+        <CardHeader>
+          <CardTitle className="text-white text-center">
+            Community Sustainability Goals 2024
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-slate-300">Renewable Energy Target</span>
+                <span className="text-green-400">57.7% / 60%</span>
+              </div>
+              <div className="w-full bg-slate-700 rounded-full h-2">
+                <div 
+                  className="bg-green-400 h-2 rounded-full" 
+                  style={{ width: '96%' }}
+                ></div>
+              </div>
+            </div>
+            
+            <div>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-slate-300">Carbon Reduction Target</span>
+                <span className="text-blue-400">220g / 200g CO₂/kWh</span>
+              </div>
+              <div className="w-full bg-slate-700 rounded-full h-2">
+                <div 
+                  className="bg-blue-400 h-2 rounded-full" 
+                  style={{ width: '80%' }}
+                ></div>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-slate-300">Energy Efficiency Goal</span>
+                <span className="text-purple-400">94% / 95%</span>
+              </div>
+              <div className="w-full bg-slate-700 rounded-full h-2">
+                <div 
+                  className="bg-purple-400 h-2 rounded-full" 
+                  style={{ width: '98.9%' }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+      {/* View Switcher */}
+      <div className="mb-6 flex justify-center">
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-2 border border-slate-600/30">
+          <Button
+            variant={currentView === 'operator' ? 'default' : 'ghost'}
+            onClick={() => setCurrentView('operator')}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl"
+          >
+            <Wrench className="h-4 w-4" />
+            Operator View
+          </Button>
+          <Button
+            variant={currentView === 'community' ? 'default' : 'ghost'}
+            onClick={() => setCurrentView('community')}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl"
+          >
+            <Users className="h-4 w-4" />
+            Community View
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto">
+        {currentView === 'operator' ? <OperatorView /> : <CommunityView />}
+      </div>
+
+      {/* Status Bar */}
+      <div className="fixed bottom-4 right-4 bg-slate-800/90 backdrop-blur-sm border border-slate-600/30 rounded-lg px-4 py-2">
+        <div className="flex items-center gap-2 text-sm">
+          <Activity className="h-4 w-4 text-green-400" />
+          <span className="text-slate-300">
+            System Status: <span className="text-green-400">Online</span>
+          </span>
+          <span className="text-slate-500">•</span>
+          <span className="text-slate-400">
+            Last Update: {currentTime.toLocaleTimeString()}
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }
