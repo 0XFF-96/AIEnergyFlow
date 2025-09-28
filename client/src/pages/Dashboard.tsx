@@ -7,6 +7,7 @@ import { AlertSystemIntegration } from '@/components/AlertSystemIntegration';
 import { AlertConfig } from '@/components/AlertConfig';
 import SystemInitialization, { UserRole, MicrogridLocation } from '@/components/SystemInitialization';
 import { FloatingAIButton } from '@/components/FloatingAIButton';
+import { RefreshRateSettings } from '@/components/RefreshRateSettings';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 // Import new chart components
@@ -59,6 +60,12 @@ export default function Dashboard() {
   const [microgridLocation, setMicrogridLocation] = useState<MicrogridLocation | null>(null);
   const [showAlertCenter, setShowAlertCenter] = useState(false);
   const [showSystemSettings, setShowSystemSettings] = useState(false);
+  const [refreshRates, setRefreshRates] = useState({
+    dashboard: 120000, // 2 minutes
+    aiInsights: 300000, // 5 minutes
+    charts: 120000, // 2 minutes
+    alerts: 10000 // 10 seconds
+  });
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -70,7 +77,7 @@ export default function Dashboard() {
   // Fetch dashboard data
   const { data: dashboardData, isLoading, error } = useQuery({
     queryKey: ['/api/dashboard/summary'],
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: refreshRates.dashboard || false, // Use dynamic refresh rate
     enabled: isInitialized,
   });
 
@@ -158,7 +165,7 @@ export default function Dashboard() {
   const { data: aiInsights } = useQuery({
     queryKey: ['/api/ai/insights'],
     enabled: isInitialized,
-    refetchInterval: 300000, // Refresh every 5 minutes
+    refetchInterval: refreshRates.aiInsights || false, // Use dynamic refresh rate
   });
 
   // Alert processing removed - no more popup notifications
@@ -728,7 +735,10 @@ export default function Dashboard() {
           </DialogHeader>
           
           <div className="flex-1 overflow-y-auto p-6 bg-background/50">
-            <div className="max-w-none">
+            <div className="max-w-none space-y-6">
+              <RefreshRateSettings 
+                onRefreshRateChange={setRefreshRates}
+              />
               <AlertSystemIntegration
                 alerts={[]}
                 onAlertAction={handleAlertAction}

@@ -33,7 +33,7 @@ export function RealtimeAlertsComponent({
 
   useEffect(() => {
     if (autoRefresh) {
-      const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+      const timer = setInterval(() => setCurrentTime(new Date()), 10000); // Refresh every 10 seconds (reduced from 1 second)
       return () => clearInterval(timer);
     }
   }, [autoRefresh]);

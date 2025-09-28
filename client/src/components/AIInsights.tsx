@@ -33,7 +33,7 @@ function AIInsights({ alerts = [], onRefresh }: AIInsightsProps) {
   // Fetch AI insights
   const { data: aiInsights, isLoading, error, refetch } = useQuery({
     queryKey: ['/api/ai/insights'],
-    refetchInterval: 60000, // Refresh every minute
+    refetchInterval: 300000, // Refresh every 5 minutes (reduced from 1 minute)
   });
 
   const insightsData: AIInsightsData = {
