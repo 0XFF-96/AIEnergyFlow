@@ -4,11 +4,19 @@ import { EnergyChart } from '@/components/EnergyChart';
 import { AlertBanner } from '@/components/AlertBanner';
 import { AlertDashboard } from '@/components/AlertDashboard';
 import { AlertSystemIntegration } from '@/components/AlertSystemIntegration';
-import { AlertNotificationSystem } from '@/components/AlertNotificationSystem';
 import { AlertConfig } from '@/components/AlertConfig';
 import SystemInitialization, { UserRole, MicrogridLocation } from '@/components/SystemInitialization';
 import { FloatingAIButton } from '@/components/FloatingAIButton';
+import { RefreshRateSettings } from '@/components/RefreshRateSettings';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
+// Import new chart components
+import { EnergyMixPieChart } from '@/charts/EnergyMixPieChart';
+import { LineGenerationChart } from '@/charts/LineGenerationChart';
+import { RealtimeAlertsComponent } from '@/charts/RealtimeAlertsComponent';
+import { CarbonIntensityPieChart } from '@/charts/CarbonIntensityPieChart';
+import { DemandStorageChart } from '@/charts/DemandStorageChart';
+import { EnergyAmountBarChart } from '@/charts/EnergyAmountBarChart';
 
 // Import microgrid locations for display
 const microgridLocations = [
@@ -52,6 +60,12 @@ export default function Dashboard() {
   const [microgridLocation, setMicrogridLocation] = useState<MicrogridLocation | null>(null);
   const [showAlertCenter, setShowAlertCenter] = useState(false);
   const [showSystemSettings, setShowSystemSettings] = useState(false);
+  const [refreshRates, setRefreshRates] = useState({
+    dashboard: 120000, // 2 minutes
+    aiInsights: 300000, // 5 minutes
+    charts: 120000, // 2 minutes
+    alerts: 10000 // 10 seconds
+  });
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -63,7 +77,7 @@ export default function Dashboard() {
   // Fetch dashboard data
   const { data: dashboardData, isLoading, error } = useQuery({
     queryKey: ['/api/dashboard/summary'],
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: refreshRates.dashboard || false, // Use dynamic refresh rate
     enabled: isInitialized,
   });
 
@@ -151,22 +165,10 @@ export default function Dashboard() {
   const { data: aiInsights } = useQuery({
     queryKey: ['/api/ai/insights'],
     enabled: isInitialized,
-    refetchInterval: 300000, // Refresh every 5 minutes
+    refetchInterval: refreshRates.aiInsights || false, // Use dynamic refresh rate
   });
 
-  // Memoize processed alerts to prevent unnecessary re-renders
-  const processedAlerts = useMemo(() => {
-    const alerts = (dashboardData as DashboardData)?.alerts || [];
-    return alerts.map((alert: any) => ({
-      ...alert,
-      severity: alert.type === 'critical' ? 'critical' : alert.type === 'warning' ? 'warning' : 'info',
-      timestamp: new Date(alert.timestamp)
-    }));
-  }, [(dashboardData as DashboardData)?.alerts]);
-
-  const handleAlertDismiss = (alertId: string) => {
-    dismissAlertMutation.mutate(alertId);
-  };
+  // Alert processing removed - no more popup notifications
 
   const handleAlertAction = (alertId: string, action: string, notes?: string) => {
     console.log(`Alert ${alertId}: ${action} action triggered`, { notes });
@@ -263,6 +265,103 @@ export default function Dashboard() {
   const dailyTotals = data?.dailyTotals || { consumption: 0, generation: 0, co2Saved: 0 };
   const systemStatus = data?.systemStatus || {};
 
+  // Unified color palette for consistent visual design
+  const energyColors = {
+    solar: '#f59e0b',      // Amber - warm, energetic
+    wind: '#10b981',        // Emerald - natural, clean
+    gas: '#ef4444',         // Red - warning, fossil fuel
+    nuclear: '#3b82f6',     // Blue - stable, reliable
+    hydro: '#06b6d4',       // Cyan - water, flow
+    coal: '#6b7280',        // Gray - dirty, outdated
+    oil: '#dc2626',         // Dark red - high carbon
+    biomass: '#84cc16',     // Lime - organic, renewable
+    geothermal: '#8b5cf6',  // Purple - earth, deep
+    storage: '#6366f1'      // Indigo - technology, smart
+  };
+
+  const statusColors = {
+    excellent: '#10b981',   // Green - excellent performance
+    good: '#84cc16',        // Lime - good performance  
+    moderate: '#f59e0b',    // Amber - moderate performance
+    poor: '#f97316',        // Orange - poor performance
+    critical: '#ef4444'     // Red - critical issues
+  };
+
+  const intensityColors = {
+    veryLow: '#10b981',     // Green - very low carbon
+    low: '#84cc16',         // Lime - low carbon
+    moderate: '#f59e0b',    // Amber - moderate carbon
+    high: '#f97316',        // Orange - high carbon
+    veryHigh: '#ef4444'     // Red - very high carbon
+  };
+
+  // Generate mock data for new chart components
+  const generateMockEnergyMixData = () => [
+    { name: 'Solar', value: 45.2, color: energyColors.solar, intensity: 0 },
+    { name: 'Wind', value: 28.7, color: energyColors.wind, intensity: 0 },
+    { name: 'Gas', value: 15.3, color: energyColors.gas, intensity: 350 },
+    { name: 'Nuclear', value: 8.1, color: energyColors.nuclear, intensity: 12 },
+    { name: 'Hydro', value: 2.7, color: energyColors.hydro, intensity: 0 }
+  ];
+
+  const generateMockGenerationData = () => {
+    const hours = Array.from({ length: 24 }, (_, i) => {
+      const hour = i;
+      const baseGeneration = 50 + Math.sin(hour * Math.PI / 12) * 30;
+      const solar = hour >= 6 && hour <= 18 ? baseGeneration * 0.6 : 0;
+      const wind = baseGeneration * 0.3 + Math.random() * 20;
+      const gas = Math.max(0, baseGeneration * 0.2 - solar - wind);
+      
+      return {
+        time: `${hour.toString().padStart(2, '0')}:00`,
+        generation: Math.round(baseGeneration),
+        solar: Math.round(solar),
+        wind: Math.round(wind),
+        gas: Math.round(gas),
+        nuclear: 15
+      };
+    });
+    return hours;
+  };
+
+  const generateMockCarbonIntensityData = () => [
+    { name: 'Very Low (0-50)', value: 35.2, color: intensityColors.veryLow, range: '0-50 gCO₂/kWh', impact: 'very-low' },
+    { name: 'Low (50-150)', value: 28.7, color: intensityColors.low, range: '50-150 gCO₂/kWh', impact: 'low' },
+    { name: 'Moderate (150-300)', value: 20.1, color: intensityColors.moderate, range: '150-300 gCO₂/kWh', impact: 'moderate' },
+    { name: 'High (300-500)', value: 12.3, color: intensityColors.high, range: '300-500 gCO₂/kWh', impact: 'high' },
+    { name: 'Very High (500+)', value: 3.7, color: intensityColors.veryHigh, range: '500+ gCO₂/kWh', impact: 'very-high' }
+  ];
+
+  const generateMockDemandStorageData = () => {
+    return Array.from({ length: 24 }, (_, i) => {
+      const hour = i;
+      const demand = 80 + Math.sin(hour * Math.PI / 12) * 40 + Math.random() * 20;
+      const storage = Math.max(10, 70 - hour * 2 + Math.random() * 10);
+      const generation = hour >= 6 && hour <= 18 ? demand * 0.8 : demand * 0.2;
+      
+      return {
+        time: `${hour.toString().padStart(2, '0')}:00`,
+        demand: Math.round(demand),
+        storage: Math.round(storage),
+        generation: Math.round(generation)
+      };
+    });
+  };
+
+  const generateMockEnergyAmountData = () => [
+    { source: 'Solar Panels', amount: 125.4, color: energyColors.solar, capacity: 200 },
+    { source: 'Wind Turbines', amount: 89.2, color: energyColors.wind, capacity: 150 },
+    { source: 'Gas Generator', amount: 45.8, color: energyColors.gas, capacity: 100 },
+    { source: 'Nuclear Plant', amount: 15.0, color: energyColors.nuclear, capacity: 20 },
+    { source: 'Hydro Dam', amount: 8.5, color: energyColors.hydro, capacity: 15 }
+  ];
+
+  const mockEnergyMixData = generateMockEnergyMixData();
+  const mockGenerationData = generateMockGenerationData();
+  const mockCarbonIntensityData = generateMockCarbonIntensityData();
+  const mockDemandStorageData = generateMockDemandStorageData();
+  const mockEnergyAmountData = generateMockEnergyAmountData();
+
   const alertComponents = alerts.length > 0 ? (
     <div className="space-y-3">
       {alerts.map((alert) => (
@@ -272,7 +371,7 @@ export default function Dashboard() {
           title={alert.title}
           description={alert.description}
           timestamp={new Date(alert.timestamp).toLocaleString()}
-          onDismiss={() => handleAlertDismiss(alert.id)}
+          onDismiss={() => console.log('Alert dismissed:', alert.id)}
           actionLabel="Investigate"
           onAction={() => handleAlertAction(alert.id, 'investigate')}
         />
@@ -290,10 +389,6 @@ export default function Dashboard() {
         userRole={userRole || undefined}
         microgridLocation={microgridLocation || undefined}
       >
-        <AlertNotificationSystem 
-          alerts={processedAlerts}
-          onAlertAction={handleAlertDismiss}
-        />
       
       <Tabs defaultValue="overview" className="space-y-8">
         <TabsList className="grid w-full h-12 grid-cols-2">
@@ -413,6 +508,55 @@ export default function Dashboard() {
           height={400}
         />
 
+        {/* New Chart Components Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Energy Mix Pie Chart */}
+          <EnergyMixPieChart
+            data={mockEnergyMixData}
+            title="Current Energy Mix"
+            height={400}
+          />
+          
+          {/* Generation Line Chart */}
+          <LineGenerationChart
+            data={mockGenerationData}
+            title="Generation Over Time"
+            height={400}
+          />
+        </div>
+
+        {/* Second Row - Carbon Intensity and Demand Storage */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <CarbonIntensityPieChart
+            data={mockCarbonIntensityData}
+            title="Carbon Intensity Distribution"
+            totalEmissions={180}
+            height={400}
+          />
+          
+          <DemandStorageChart
+            data={mockDemandStorageData}
+            title="Demand vs Storage Balance"
+            height={400}
+          />
+        </div>
+
+        {/* Third Row - Energy Amount and Real-time Alerts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <EnergyAmountBarChart
+            data={mockEnergyAmountData}
+            title="Energy Production by Source"
+            height={400}
+          />
+          
+          <RealtimeAlertsComponent
+            alerts={[]}
+            title="Real-time System Alerts"
+            maxAlerts={5}
+            onAlertAction={handleAlertAction}
+          />
+        </div>
+
         {/* System Status */}
         <Card className="hover-elevate">
           <CardHeader>
@@ -481,6 +625,7 @@ export default function Dashboard() {
             </p>
           </div>
           
+          {/* Analytics KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card>
               <CardHeader>
@@ -512,24 +657,58 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Analytics Coming Soon</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Advanced analytics and reporting features will be available here, including:
-              </p>
-              <ul className="list-disc list-inside mt-4 space-y-2 text-sm text-muted-foreground">
-                <li>Energy consumption patterns and forecasting</li>
-                <li>Predictive maintenance recommendations</li>
-                <li>Cost optimization analysis</li>
-                <li>Carbon footprint tracking</li>
-                <li>Custom report generation</li>
-              </ul>
-            </CardContent>
-          </Card>
+
+          {/* Advanced Analytics Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Energy Mix Analysis */}
+            <EnergyMixPieChart
+              data={mockEnergyMixData}
+              title="Energy Mix Analysis"
+              height={350}
+            />
+            
+            {/* Carbon Intensity Analysis */}
+            <CarbonIntensityPieChart
+              data={mockCarbonIntensityData}
+              title="Environmental Impact Analysis"
+              totalEmissions={180}
+              height={350}
+            />
+          </div>
+
+          {/* Generation and Storage Analytics */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <LineGenerationChart
+              data={mockGenerationData}
+              title="Generation Pattern Analysis"
+              height={350}
+            />
+            
+            <DemandStorageChart
+              data={mockDemandStorageData}
+              title="Demand & Storage Analytics"
+              height={350}
+            />
+          </div>
+
+          {/* Production Analytics */}
+          <div className="grid grid-cols-1 gap-6">
+            <EnergyAmountBarChart
+              data={mockEnergyAmountData}
+              title="Energy Production Analytics"
+              height={400}
+            />
+          </div>
+
+          {/* Real-time Monitoring */}
+          <div className="grid grid-cols-1 gap-6">
+            <RealtimeAlertsComponent
+              alerts={[]}
+              title="System Monitoring & Alerts"
+              maxAlerts={8}
+              onAlertAction={handleAlertAction}
+            />
+          </div>
         </TabsContent>
       </Tabs>
       </DashboardLayout>
@@ -556,9 +735,12 @@ export default function Dashboard() {
           </DialogHeader>
           
           <div className="flex-1 overflow-y-auto p-6 bg-background/50">
-            <div className="max-w-none">
+            <div className="max-w-none space-y-6">
+              <RefreshRateSettings 
+                onRefreshRateChange={setRefreshRates}
+              />
               <AlertSystemIntegration
-                alerts={processedAlerts}
+                alerts={[]}
                 onAlertAction={handleAlertAction}
               />
             </div>
